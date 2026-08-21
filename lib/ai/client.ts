@@ -1,8 +1,8 @@
 /**
  * Shared transport for OpenAI-compatible chat completion APIs.
  *
- * NVIDIA NIM, OpenRouter and Groq all speak the same wire format, so timeout,
- * abort, retry and error normalisation live here once instead of three times.
+ * NVIDIA NIM and Groq speak the same wire format, so timeout, abort, retry and
+ * error normalisation live here once instead of duplicating them.
  * Provider modules supply only the base URL, credential and request shape.
  *
  * Nothing in this module logs or returns credentials or raw provider bodies.
@@ -35,7 +35,7 @@ export type ChatRequest = {
   timeoutMs?: number;
   /** Stage reported if this call fails. */
   stage: InvestigationStage;
-  /** Extra provider-specific headers (e.g. OpenRouter attribution). */
+  /** Extra provider-specific headers when a provider needs them. */
   headers?: Record<string, string>;
   /** Retries on timeout, 429 and 5xx. One retry by default. */
   retries?: number;
@@ -150,8 +150,8 @@ export async function chatCompletion(request: ChatRequest): Promise<string> {
 
       const payload: unknown = await response.json();
 
-      // OpenRouter returns HTTP 200 with a body-level error object when the
-      // upstream provider is overloaded, so status alone is not enough.
+      // Some providers return HTTP 200 with a body-level error when upstream
+      // capacity is unavailable, so status alone is not enough.
       const bodyErrorStatus = readBodyErrorStatus(payload);
       if (bodyErrorStatus !== null) {
         const error = new InvestigationError(
@@ -229,7 +229,7 @@ function readMessageContent(payload: unknown): string {
 /**
  * Detects a body-level error object and returns its status code.
  *
- * OpenRouter reports upstream provider failures this way — HTTP 200 with
+ * Some providers report upstream failures this way — HTTP 200 with
  * `{ error: { code: 502, message } }` — so the status line looks healthy while
  * there is no completion at all. Returns null when the payload is fine.
  */

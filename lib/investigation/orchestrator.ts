@@ -13,17 +13,16 @@
  * - evidence: degrades to a sources-only package.
  * - reasoning: degrades to an honest INSUFFICIENT_DATA assessment.
  *
- * Timing. Typical end to end is 75-180s: vision ~7s, Overpass ~10-30s, Nemotron
- * planning ~50s, search ~6s, Nemotron evidence ~80s, Groq ~3s. Vision and the
+ * Timing. The research stages now use fast Cerebras inference. Vision and the
  * geographic lookup run concurrently because they share no input; everything
  * else is genuinely sequential, since each stage consumes the previous one's
- * output. The free-tier Nemotron endpoint dominates, and occasionally stalls,
- * which is why the model stages carry absolute deadlines (see below).
+ * output. Model stages carry absolute deadlines (see below).
  */
 import { analyzeImage } from "@/lib/ai/vision";
 import { planResearch } from "@/lib/ai/research";
 import { extractEvidence } from "@/lib/ai/evidence";
 import { assessRisk, insufficientDataAssessment } from "@/lib/ai/assessment";
+import { finishCerebrasInvestigation } from "@/lib/ai/cerebras";
 import { buildGeographicContext, SEARCH_RADIUS_METRES } from "@/lib/geo/context";
 import { searchMany } from "@/lib/search/search";
 import { toSource } from "@/lib/search/classify";
@@ -64,12 +63,12 @@ const MAX_SOURCES = 12;
  * Total budget for one investigation, and the share each model stage may take.
  *
  * Measured worst case was ~8 minutes, well past Vercel's 300s ceiling: the
- * free-tier Nemotron endpoint occasionally stalls, and a 90s timeout with two
- * retries lets a single stage occupy 4.5 minutes. Absolute deadlines bound each
+ * a slow provider can stall, and retries can otherwise occupy too much time.
+ * Absolute deadlines bound each
  * model stage so a slow provider degrades that stage rather than truncating the
  * whole run mid-stream.
  *
- * Both Nemotron stages degrade gracefully when their budget runs out — research
+ * Both Cerebras stages degrade gracefully when their budget runs out — research
  * falls back to a mechanical plan, evidence to a sources-only package — so the
  * user still reaches an assessment.
  */
@@ -177,6 +176,7 @@ export async function runInvestigation(
       geographic,
       userNote: input.note,
       deadline: stageDeadline(RESEARCH_BUDGET_MS),
+      investigationId,
     });
     emit({ type: "research_plan_ready", data: plan });
 
@@ -195,6 +195,7 @@ export async function runInvestigation(
       userNote: input.note,
       failedQueries,
       deadline: stageDeadline(EVIDENCE_BUDGET_MS),
+      investigationId,
     });
     emit({ type: "evidence_extracted", data: evidence.evidence });
     emit({ type: "evidence_ready", data: evidence });
@@ -214,6 +215,8 @@ export async function runInvestigation(
       : "The investigation could not be completed.";
     emit({ type: "failed", data: { stage, message } });
     throw error;
+  } finally {
+    finishCerebrasInvestigation(investigationId);
   }
 }
 

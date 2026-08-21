@@ -1,14 +1,14 @@
 /**
  * Research planning stage.
  *
- * Nemotron turns the visual observations, the user's note and the geographic
+ * Cerebras turns the visual observations, the user's note and the geographic
  * context into concrete search queries. It cannot browse; it only decides what
  * should be looked up, and why.
  *
  * Query quality matters more than quantity here: each query costs a search API
  * call, and the free tier is finite.
  */
-import { askNemotron } from "./nemotron";
+import { askCerebras } from "./cerebras";
 import {
   coerceObjectArray,
   coerceString,
@@ -208,15 +208,18 @@ export async function planResearch(input: {
   userNote: string;
   /** Absolute epoch-ms budget for this stage. */
   deadline?: number;
+  investigationId?: string;
 }): Promise<ResearchPlan> {
   try {
-    const responseText = await askNemotron({
+    const responseText = await askCerebras({
       systemPrompt: SYSTEM_PROMPT,
       userPrompt: buildResearchPrompt(input),
       stage: "research",
+      operation: "research plan",
       maxTokens: 2000,
       temperature: 0.4,
       deadline: input.deadline,
+      investigationId: input.investigationId,
     });
 
     const plan = parseResearchPlan(responseText);

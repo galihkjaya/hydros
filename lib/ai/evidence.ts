@@ -1,7 +1,7 @@
 /**
  * Evidence extraction and packaging.
  *
- * Nemotron reads the search results and turns them into discrete claims, each
+ * Cerebras reads the search results and turns them into discrete claims, each
  * tied to the URL it came from. This is the boundary where external web content
  * enters the system: it arrives as data, is fenced as data, and every claim must
  * carry its source or it is dropped.
@@ -10,7 +10,7 @@
  * only, never raw page text — so the final reasoning call stays inside token
  * limits and free-tier budgets.
  */
-import { askNemotron } from "./nemotron";
+import { askCerebras } from "./cerebras";
 import {
   coerceConfidence,
   coerceObjectArray,
@@ -221,6 +221,7 @@ export async function extractEvidence({
   userNote,
   failedQueries = [],
   deadline,
+  investigationId,
 }: {
   visual: VisualAnalysis;
   geographic: GeographicContext;
@@ -230,6 +231,7 @@ export async function extractEvidence({
   failedQueries?: readonly string[];
   /** Absolute epoch-ms budget for this stage. */
   deadline?: number;
+  investigationId?: string;
 }): Promise<EvidencePackage> {
   const ranked = [...sources]
     .sort((a, b) => b.relevance - a.relevance)
@@ -241,7 +243,7 @@ export async function extractEvidence({
 
   if (ranked.length > 0) {
     try {
-      const responseText = await askNemotron({
+      const responseText = await askCerebras({
         systemPrompt: SYSTEM_PROMPT,
         userPrompt: buildEvidencePrompt({
           visual,
@@ -251,9 +253,11 @@ export async function extractEvidence({
           userNote,
         }),
         stage: "evidence",
+        operation: "evidence synthesis",
         maxTokens: 3500,
         temperature: 0.2,
         deadline,
+        investigationId,
       });
 
       const parsed = parseEvidence(
