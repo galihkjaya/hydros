@@ -121,12 +121,36 @@ export async function chatCompletion(request: ChatRequest): Promise<string> {
       }
 
       const payload: unknown = await response.json();
+
+      // OpenRouter returns HTTP 200 with a body-level error object when the
+      // upstream provider is overloaded, so status alone is not enough.
+      const bodyErrorStatus = readBodyErrorStatus(payload);
+      if (bodyErrorStatus !== null) {
+        const error = new InvestigationError(
+          stage,
+          messageForStatus(bodyErrorStatus),
+        );
+        if (isRetryable(bodyErrorStatus) && attempt < retries) {
+          lastError = error;
+          await backoff(attempt);
+          continue;
+        }
+        throw error;
+      }
+
       const text = readMessageContent(payload);
       if (!text) {
-        throw new InvestigationError(
+        const error = new InvestigationError(
           stage,
           "The AI provider returned an empty response.",
         );
+        // An empty completion is usually transient capacity, so retry once.
+        if (attempt < retries) {
+          lastError = error;
+          await backoff(attempt);
+          continue;
+        }
+        throw error;
       }
       return text;
     } catch (error) {
@@ -155,8 +179,8 @@ export async function chatCompletion(request: ChatRequest): Promise<string> {
 }
 
 function backoff(attempt: number): Promise<void> {
-  // 600ms then 1.2s. Short enough to stay inside the serverless budget.
-  return new Promise((resolve) => setTimeout(resolve, 600 * (attempt + 1)));
+  // 800ms, 1.6s, 2.4s. Short enough to stay inside the serverless budget.
+  return new Promise((resolve) => setTimeout(resolve, 800 * (attempt + 1)));
 }
 
 /** Pulls choices[0].message.content out of an unknown payload. */
@@ -168,4 +192,23 @@ function readMessageContent(payload: unknown): string {
   if (typeof message !== "object" || message === null) return "";
   const content = (message as { content?: unknown }).content;
   return typeof content === "string" ? content.trim() : "";
+}
+
+/**
+ * Detects a body-level error object and returns its status code.
+ *
+ * OpenRouter reports upstream provider failures this way — HTTP 200 with
+ * `{ error: { code: 502, message } }` — so the status line looks healthy while
+ * there is no completion at all. Returns null when the payload is fine.
+ */
+function readBodyErrorStatus(payload: unknown): number | null {
+  if (typeof payload !== "object" || payload === null) return null;
+  const error = (payload as { error?: unknown }).error;
+  if (typeof error !== "object" || error === null) return null;
+  const code = (error as { code?: unknown }).code;
+  if (typeof code === "number") return code;
+  // Some providers send the code as a string.
+  if (typeof code === "string" && /^\d{3}$/.test(code)) return Number(code);
+  // An error object without a usable code is still an error.
+  return 502;
 }

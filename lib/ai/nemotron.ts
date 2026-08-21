@@ -74,7 +74,8 @@ export async function askNemotron({
     timeoutMs,
     stage,
     headers: attributionHeaders(),
-    // Free-tier capacity is intermittent; one retry absorbs a transient 429.
-    retries: 1,
+    // Free-tier capacity is intermittent and OpenRouter surfaces upstream
+    // "temporarily overloaded" as a body-level error; two retries absorb it.
+    retries: 2,
   });
 }
