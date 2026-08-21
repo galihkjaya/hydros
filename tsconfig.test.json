@@ -1,0 +1,14 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "outDir": ".test-build",
+    "rootDir": ".",
+    "incremental": false,
+    "jsx": "react-jsx",
+    "types": ["node"]
+  },
+  "include": ["tests/**/*.ts", "lib/**/*.ts"]
+}
