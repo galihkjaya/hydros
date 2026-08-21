@@ -1,38 +1,27 @@
 import { Badge, Card, SectionHeading } from "@/components/ui/primitives";
 import { formatConfidence } from "@/lib/utils/format";
 import { EvidenceCard } from "./EvidenceCard";
+import { RISK_LEVEL_LABELS } from "./view-model";
 import type {
-  AssessmentView,
-  EvidenceView,
+  Evidence,
+  RiskAssessment as RiskAssessmentData,
   RiskLevel,
-  SourceView,
-} from "./view-model";
+  Source,
+} from "@/types/investigation";
 
-const LEVEL: Record<
-  RiskLevel,
-  { label: string; tone: "low" | "medium" | "high" | "unknown"; blurb: string }
-> = {
-  LOW: {
-    label: "Low concern",
-    tone: "low",
-    blurb: "No strong indicators found in the visible evidence or the records.",
-  },
-  MEDIUM: {
-    label: "Moderate concern",
-    tone: "medium",
-    blurb: "Some indicators warrant caution and further checking.",
-  },
-  HIGH: {
-    label: "High concern",
-    tone: "high",
-    blurb: "Multiple converging indicators suggest a real risk.",
-  },
-  INSUFFICIENT_DATA: {
-    label: "Insufficient data",
-    tone: "unknown",
-    blurb:
-      "The available evidence does not support a risk conclusion either way.",
-  },
+const LEVEL_TONE: Record<RiskLevel, "low" | "medium" | "high" | "unknown"> = {
+  LOW: "low",
+  MEDIUM: "medium",
+  HIGH: "high",
+  INSUFFICIENT_DATA: "unknown",
+};
+
+const LEVEL_BLURB: Record<RiskLevel, string> = {
+  LOW: "No strong indicators found in the visible evidence or the records.",
+  MEDIUM: "Some indicators warrant caution and further checking.",
+  HIGH: "Multiple converging indicators suggest a real risk.",
+  INSUFFICIENT_DATA:
+    "The available evidence does not support a risk conclusion either way.",
 };
 
 /**
@@ -45,14 +34,13 @@ const LEVEL: Record<
  */
 export function RiskAssessment({
   assessment,
-  evidence,
   sources,
 }: {
-  assessment: AssessmentView;
-  evidence: readonly EvidenceView[];
-  sources: readonly SourceView[];
+  assessment: RiskAssessmentData;
+  sources: readonly Source[];
 }) {
-  const level = LEVEL[assessment.riskLevel];
+  const tone = LEVEL_TONE[assessment.riskLevel];
+  const byUrl = new Map(sources.map((source) => [source.url, source]));
 
   return (
     <Card className="animate-rise overflow-hidden">
@@ -60,16 +48,22 @@ export function RiskAssessment({
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="wl-label">Assessment</p>
-            <h2 className="mt-1 text-xl font-semibold">{level.label}</h2>
+            <h2 className="mt-1 text-xl font-semibold">
+              {RISK_LEVEL_LABELS[assessment.riskLevel]}
+            </h2>
           </div>
           <div className="text-right">
-            <Badge tone={level.tone}>{assessment.riskLevel.replace("_", " ")}</Badge>
+            <Badge tone={tone}>
+              {assessment.riskLevel.replace("_", " ")}
+            </Badge>
             <p className="mt-1.5 wl-mono text-subtle">
               confidence {formatConfidence(assessment.confidence)}
             </p>
           </div>
         </div>
-        <p className="mt-3 text-[0.875rem] text-muted">{level.blurb}</p>
+        <p className="mt-3 text-[0.875rem] text-muted">
+          {LEVEL_BLURB[assessment.riskLevel]}
+        </p>
       </header>
 
       <div className="space-y-6 p-5 sm:p-6">
@@ -87,7 +81,7 @@ export function RiskAssessment({
                   key={factor}
                   className="flex gap-2.5 text-[0.9375rem] leading-6"
                 >
-                  <span aria-hidden="true" className="mt-2.5 size-1.5 shrink-0 rounded-full bg-line-strong" />
+                  <Dot />
                   <span>{factor}</span>
                 </li>
               ))}
@@ -95,15 +89,15 @@ export function RiskAssessment({
           </section>
         ) : null}
 
-        {evidence.length > 0 ? (
+        {assessment.evidence.length > 0 ? (
           <section>
             <SectionHeading label="Supporting evidence" />
             <div className="mt-3 space-y-3">
-              {evidence.map((item, index) => (
+              {assessment.evidence.map((item: Evidence, index) => (
                 <EvidenceCard
-                  key={`${item.claim}-${index}`}
+                  key={`${item.sourceUrl}-${index}`}
                   evidence={item}
-                  source={sources[item.sourceIndex]}
+                  source={byUrl.get(item.sourceUrl)}
                 />
               ))}
             </div>
@@ -124,7 +118,7 @@ export function RiskAssessment({
                   key={limitation}
                   className="flex gap-2.5 text-[0.875rem] leading-6 text-muted"
                 >
-                  <span aria-hidden="true" className="mt-2.5 size-1.5 shrink-0 rounded-full bg-line-strong" />
+                  <Dot />
                   <span>{limitation}</span>
                 </li>
               ))}
@@ -133,5 +127,14 @@ export function RiskAssessment({
         ) : null}
       </div>
     </Card>
+  );
+}
+
+function Dot() {
+  return (
+    <span
+      aria-hidden="true"
+      className="mt-2.5 size-1.5 shrink-0 rounded-full bg-line-strong"
+    />
   );
 }

@@ -1,20 +1,13 @@
 /**
- * View model for the investigation workspace.
+ * Presentation helpers for the investigation workspace.
  *
- * These shapes mirror what the pipeline will emit. They live here so the UI can
- * be built and reviewed before the providers are wired; commit 8 promotes the
- * canonical versions into `types/` and the workspace switches to real events.
+ * The data shapes now come from `types/investigation.ts`; this module only
+ * holds display concerns — stage labels and the timeline row state.
  */
+import type { InvestigationStage } from "@/types/events";
+import type { RiskLevel, VisualAttribute } from "@/types/investigation";
 
-export type RiskLevel = "LOW" | "MEDIUM" | "HIGH" | "INSUFFICIENT_DATA";
-
-export type StageId =
-  | "vision"
-  | "geo"
-  | "research"
-  | "search"
-  | "evidence"
-  | "reasoning";
+export type StageId = InvestigationStage;
 
 export type StageState = "pending" | "active" | "done" | "failed";
 
@@ -26,52 +19,6 @@ export type TimelineStage = {
   state: StageState;
   /** One-line result once the stage completes. */
   detail?: string;
-};
-
-export type VisualObservationView = {
-  attribute: string;
-  description: string;
-  /** How clearly this is visible in the photograph. */
-  confidence: number;
-};
-
-export type GeographicSourceView = {
-  name: string;
-  category: string;
-  distanceMetres: number;
-  /** Present only where an upstream relationship is defensible. */
-  relation?: "upstream" | "downstream" | "adjacent" | "unknown";
-};
-
-export type SourceView = {
-  title: string;
-  url: string;
-  domain: string;
-  snippet: string;
-  sourceType:
-    | "government"
-    | "scientific"
-    | "news"
-    | "community"
-    | "unverified";
-  publishedAt?: string;
-  relevance: number;
-};
-
-export type EvidenceView = {
-  claim: string;
-  /** Index into the sources array this claim came from. */
-  sourceIndex: number;
-  uncertainty: string;
-};
-
-export type AssessmentView = {
-  riskLevel: RiskLevel;
-  confidence: number;
-  summary: string;
-  riskFactors: string[];
-  recommendation: string;
-  limitations: string[];
 };
 
 export const STAGE_ORDER: readonly StageId[] = [
@@ -104,10 +51,7 @@ export const STAGE_LABELS: Record<
     label: "Evidence synthesis",
     activeLabel: "Analysing evidence…",
   },
-  reasoning: {
-    label: "Assessment",
-    activeLabel: "Preparing assessment…",
-  },
+  reasoning: { label: "Assessment", activeLabel: "Preparing assessment…" },
 };
 
 export function emptyStages(): TimelineStage[] {
@@ -118,3 +62,24 @@ export function emptyStages(): TimelineStage[] {
     state: "pending" as StageState,
   }));
 }
+
+/** Human labels for the vision model's attribute enum. */
+export const ATTRIBUTE_LABELS: Record<VisualAttribute, string> = {
+  color: "Colour",
+  clarity: "Clarity",
+  turbidity: "Turbidity",
+  particles: "Particles",
+  foam: "Foam",
+  algae: "Algae",
+  debris: "Debris",
+  surface: "Surface",
+  surroundings: "Surroundings",
+  other: "Other",
+};
+
+export const RISK_LEVEL_LABELS: Record<RiskLevel, string> = {
+  LOW: "Low concern",
+  MEDIUM: "Moderate concern",
+  HIGH: "High concern",
+  INSUFFICIENT_DATA: "Insufficient data",
+};

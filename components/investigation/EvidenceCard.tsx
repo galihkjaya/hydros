@@ -1,8 +1,8 @@
 import { Badge } from "@/components/ui/primitives";
 import { SourceFavicon } from "./SourceFavicon";
-import type { EvidenceView, SourceView } from "./view-model";
+import type { Evidence, Source, SourceType } from "@/types/investigation";
 
-const SOURCE_TONE: Record<SourceView["sourceType"], "accent" | "neutral"> = {
+const SOURCE_TONE: Record<SourceType, "accent" | "neutral"> = {
   government: "accent",
   scientific: "accent",
   news: "neutral",
@@ -10,7 +10,7 @@ const SOURCE_TONE: Record<SourceView["sourceType"], "accent" | "neutral"> = {
   unverified: "neutral",
 };
 
-const SOURCE_LABEL: Record<SourceView["sourceType"], string> = {
+const SOURCE_LABEL: Record<SourceType, string> = {
   government: "Government",
   scientific: "Scientific",
   news: "News",
@@ -29,8 +29,8 @@ export function EvidenceCard({
   evidence,
   source,
 }: {
-  evidence: EvidenceView;
-  source: SourceView | undefined;
+  evidence: Evidence;
+  source: Source | undefined;
 }) {
   return (
     <article className="rounded-lg border border-line bg-surface p-4">
@@ -61,13 +61,26 @@ export function EvidenceCard({
             <span className="wl-mono text-subtle">{source.publishedAt}</span>
           ) : null}
         </footer>
-      ) : null}
+      ) : (
+        // The claim's source URL did not survive into the package: show the raw
+        // link rather than dropping attribution entirely.
+        <footer className="mt-3 border-t border-line pt-3">
+          <a
+            href={evidence.sourceUrl}
+            target="_blank"
+            rel="noreferrer noopener nofollow"
+            className="wl-mono text-subtle hover:underline"
+          >
+            {evidence.sourceUrl}
+          </a>
+        </footer>
+      )}
     </article>
   );
 }
 
 /** Compact source row used in the sources panel. */
-export function SourceRow({ source }: { source: SourceView }) {
+export function SourceRow({ source }: { source: Source }) {
   return (
     <a
       href={source.url}

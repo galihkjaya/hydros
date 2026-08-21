@@ -1,32 +1,30 @@
 "use client";
 
 import { useEffect, useReducer } from "react";
-import {
-  emptyStages,
-  type AssessmentView,
-  type EvidenceView,
-  type GeographicSourceView,
-  type SourceView,
-  type StageId,
-  type TimelineStage,
-  type VisualObservationView,
-} from "./view-model";
+import { emptyStages, type StageId, type TimelineStage } from "./view-model";
+import type {
+  Evidence,
+  GeographicSource,
+  RiskAssessment,
+  Source,
+  VisualObservation,
+} from "@/types/investigation";
 
 /**
  * Workspace state and its reducer.
  *
- * The reducer is shaped around pipeline events, so commit 22 can feed it real
- * server-sent events without changing the UI: only the driver that dispatches
- * actions is replaced.
+ * Actions mirror the pipeline events in `types/events.ts`, so commit 22 can feed
+ * real server-sent events straight in: only the driver that dispatches actions
+ * is replaced.
  */
 
 export type WorkspaceState = {
   stages: TimelineStage[];
-  observations: VisualObservationView[];
-  geoSources: GeographicSourceView[];
-  sources: SourceView[];
-  evidence: EvidenceView[];
-  assessment: AssessmentView | null;
+  observations: VisualObservation[];
+  geoSources: GeographicSource[];
+  sources: Source[];
+  evidence: Evidence[];
+  assessment: RiskAssessment | null;
   finished: boolean;
   error?: string;
 };
@@ -35,11 +33,11 @@ export type WorkspaceAction =
   | { type: "stage_active"; id: StageId }
   | { type: "stage_done"; id: StageId; detail?: string }
   | { type: "stage_failed"; id: StageId; message: string }
-  | { type: "observations"; data: VisualObservationView[] }
-  | { type: "geo_sources"; data: GeographicSourceView[] }
-  | { type: "source_found"; data: SourceView }
-  | { type: "evidence"; data: EvidenceView[] }
-  | { type: "assessment"; data: AssessmentView }
+  | { type: "observations"; data: VisualObservation[] }
+  | { type: "geo_source_found"; data: GeographicSource }
+  | { type: "source_found"; data: Source }
+  | { type: "evidence"; data: Evidence[] }
+  | { type: "assessment"; data: RiskAssessment }
   | { type: "failed"; message: string };
 
 export const initialWorkspaceState: WorkspaceState = {
@@ -66,7 +64,10 @@ export function workspaceReducer(
 ): WorkspaceState {
   switch (action.type) {
     case "stage_active":
-      return { ...state, stages: setStage(state.stages, action.id, { state: "active" }) };
+      return {
+        ...state,
+        stages: setStage(state.stages, action.id, { state: "active" }),
+      };
 
     case "stage_done":
       return {
@@ -92,8 +93,10 @@ export function workspaceReducer(
     case "observations":
       return { ...state, observations: action.data };
 
-    case "geo_sources":
-      return { ...state, geoSources: action.data };
+    case "geo_source_found":
+      return state.geoSources.some((source) => source.id === action.data.id)
+        ? state
+        : { ...state, geoSources: [...state.geoSources, action.data] };
 
     case "source_found":
       // Deduplicate by URL: the same page can surface across several queries.
@@ -135,8 +138,8 @@ function sleep(ms: number, signal: AbortSignal): Promise<void> {
  * MOCK DRIVER — UI DEVELOPMENT ONLY.
  *
  * Replays a scripted investigation so the workspace can be reviewed before the
- * providers exist. Deleted in commit 22 when the real event stream lands.
- * The workspace labels this state clearly; it is never presented as a result.
+ * pipeline exists. Deleted in commit 22 when the real event stream lands. The
+ * workspace labels this state clearly; it is never presented as a result.
  */
 export function useMockInvestigation(
   dispatch: (action: WorkspaceAction) => void,
@@ -148,8 +151,13 @@ export function useMockInvestigation(
     const { signal } = controller;
 
     (async () => {
-      const { MOCK_ASSESSMENT, MOCK_EVIDENCE, MOCK_GEO_SOURCES, MOCK_OBSERVATIONS, MOCK_SOURCES } =
-        await import("./mock-data");
+      const {
+        MOCK_ASSESSMENT,
+        MOCK_EVIDENCE,
+        MOCK_GEO_SOURCES,
+        MOCK_OBSERVATIONS,
+        MOCK_SOURCES,
+      } = await import("./mock-data");
 
       dispatch({ type: "stage_active", id: "vision" });
       await sleep(900, signal);
@@ -161,8 +169,10 @@ export function useMockInvestigation(
       });
 
       dispatch({ type: "stage_active", id: "geo" });
-      await sleep(800, signal);
-      dispatch({ type: "geo_sources", data: MOCK_GEO_SOURCES });
+      for (const source of MOCK_GEO_SOURCES) {
+        await sleep(220, signal);
+        dispatch({ type: "geo_source_found", data: source });
+      }
       dispatch({
         type: "stage_done",
         id: "geo",
@@ -171,7 +181,11 @@ export function useMockInvestigation(
 
       dispatch({ type: "stage_active", id: "research" });
       await sleep(700, signal);
-      dispatch({ type: "stage_done", id: "research", detail: "3 research questions" });
+      dispatch({
+        type: "stage_done",
+        id: "research",
+        detail: "3 research questions",
+      });
 
       dispatch({ type: "stage_active", id: "search" });
       for (const source of MOCK_SOURCES) {
