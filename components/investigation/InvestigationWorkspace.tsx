@@ -7,7 +7,7 @@ import { InvestigationStatus } from "./InvestigationStatus";
 import { InvestigationTimeline } from "./InvestigationTimeline";
 import { SourceGathering } from "./SourceGathering";
 import { SourceRow } from "./EvidenceCard";
-import { GeographicContext, VisualObservations } from "./ContextPanels";
+import { GeographicContextPanel, VisualObservations } from "./ContextPanels";
 import { RiskAssessment } from "./RiskAssessment";
 import { useMockInvestigation, useWorkspaceState } from "./useInvestigation";
 import { useDraft } from "@/lib/investigation/draft";
@@ -150,7 +150,7 @@ export function InvestigationWorkspace({ investigationId }: { investigationId: s
               }
             />
             <div className="mt-4">
-              <GeographicContext sources={state.geoSources} />
+              <GeographicContextPanel sources={state.geoSources} />
             </div>
           </Card>
 
@@ -172,7 +172,6 @@ export function InvestigationWorkspace({ investigationId }: { investigationId: s
           {state.assessment ? (
             <RiskAssessment
               assessment={state.assessment}
-              evidence={state.evidence}
               sources={state.sources}
             />
           ) : (

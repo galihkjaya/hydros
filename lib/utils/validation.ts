@@ -100,3 +100,34 @@ export function sanitizeText(value: string, maxLength: number): string {
 export function formatCoordinate(value: number): string {
   return value.toFixed(5);
 }
+
+/**
+ * Base64 payload limit for an image data URL sent to a provider.
+ * Below the point where providers start returning 413.
+ */
+export const MAX_IMAGE_BASE64_LENGTH = 5 * 1024 * 1024;
+
+export type ParsedImageDataUrl = {
+  mimeType: "image/jpeg" | "image/png" | "image/webp";
+  base64: string;
+};
+
+/**
+ * Validates a `data:image/...;base64,...` URL.
+ *
+ * Server-side counterpart to the client file check: the server must not trust
+ * that the browser actually produced what it claims. Returns null for anything
+ * that is not an accepted, non-empty, in-budget image data URL.
+ */
+export function parseImageDataUrl(value: string): ParsedImageDataUrl | null {
+  const match = /^data:(image\/(?:jpeg|png|webp));base64,([A-Za-z0-9+/]+={0,2})$/.exec(
+    value,
+  );
+  const mimeType = match?.[1] as ParsedImageDataUrl["mimeType"] | undefined;
+  const base64 = match?.[2];
+  if (!mimeType || !base64) return null;
+  if (base64.length > MAX_IMAGE_BASE64_LENGTH) return null;
+  // Base64 length is always a multiple of 4.
+  if (base64.length % 4 !== 0) return null;
+  return { mimeType, base64 };
+}

@@ -2,7 +2,7 @@
 
 import { Logo } from "@/components/layout/Logo";
 import { SourceFavicon } from "./SourceFavicon";
-import type { SourceView } from "./view-model";
+import type { Source } from "@/types/investigation";
 
 /**
  * Discovered sources gathering toward the WaterLens mark.
@@ -16,7 +16,7 @@ export function SourceGathering({
   sources,
   searching,
 }: {
-  sources: readonly SourceView[];
+  sources: readonly Source[];
   searching: boolean;
 }) {
   if (sources.length === 0) {
