@@ -10,7 +10,7 @@ import {
   elementId,
   type OverpassElement,
 } from "./overpass";
-import { distanceMetres } from "@/lib/utils/distance";
+import { distanceMetres, projectOntoPolyline } from "@/lib/utils/distance";
 import type {
   GeographicCategory,
   GeographicSource,
@@ -111,11 +111,24 @@ export function toGeographicSource(
   const tags = element.tags;
   if (!tags) return null;
 
-  const coordinate = elementCoordinate(element);
-  if (!coordinate) return null;
-
   const classification = classify(tags);
   if (!classification) return null;
+
+  // For a linear waterway, the relevant distance is to its nearest point, not
+  // to its midpoint: a river passing 20 m away should not read as 800 m because
+  // its centre lies further upstream. Perpendicular projection, not nearest
+  // vertex — long rivers are mapped with very sparse vertices.
+  const projection = element.geometry?.length
+    ? projectOntoPolyline(
+        element.geometry.map((vertex) => ({
+          latitude: vertex.lat,
+          longitude: vertex.lon,
+        })),
+        origin,
+      )
+    : null;
+  const coordinate = projection?.closest ?? elementCoordinate(element);
+  if (!coordinate) return null;
 
   return {
     id: elementId(element),
@@ -124,7 +137,9 @@ export function toGeographicSource(
     osmTag: classification.osmTag,
     latitude: coordinate.latitude,
     longitude: coordinate.longitude,
-    distanceMetres: Math.round(distanceMetres(origin, coordinate)),
+    distanceMetres: Math.round(
+      projection?.distanceMetres ?? distanceMetres(origin, coordinate),
+    ),
     // Flow relationships are decided later, by the upstream analysis.
     relation: "unknown",
   };

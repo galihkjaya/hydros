@@ -30,8 +30,11 @@ const QUERY_TIMEOUT_SECONDS = 25;
  * caps. A single combined `out 80` in a dense city returns 80 streams and no
  * industry at all, which is exactly the information we need most.
  */
-const MAX_WATER_FEATURES = 40;
+const MAX_WATERWAYS = 25;
+const MAX_WATER_BODIES = 15;
 const MAX_RISK_FEATURES = 40;
+
+export type LatLon = { lat: number; lon: number };
 
 export type OverpassElement = {
   type: "node" | "way" | "relation";
@@ -40,7 +43,13 @@ export type OverpassElement = {
   lat?: number;
   lon?: number;
   /** Present on ways/relations when `out center` is requested. */
-  center?: { lat: number; lon: number };
+  center?: LatLon;
+  /**
+   * Ordered vertices, present on waterways when `out geom` is requested.
+   * OSM digitises waterways in the direction of flow, so vertex order carries
+   * the upstream/downstream information the analysis depends on.
+   */
+  geometry?: LatLon[];
   tags?: Record<string, string>;
 };
 
@@ -50,6 +59,9 @@ export type OverpassElement = {
  * `nwr` matches nodes, ways and relations in one selector, which keeps the query
  * short enough that Overpass answers in a few seconds — separate per-type
  * selectors reliably timed out at 504 during testing.
+ *
+ * Only linear waterways request full geometry; water bodies and risk features
+ * get a single `center` point, which is all the distance maths needs.
  */
 function buildQuery(
   latitude: number,
@@ -61,14 +73,17 @@ function buildQuery(
   return `[out:json][timeout:${QUERY_TIMEOUT_SECONDS}];
 (
   nwr(${around})["waterway"~"^(river|stream|canal|drain|ditch)$"];
+)->.waterways;
+(
   nwr(${around})["natural"="water"];
-)->.water;
+)->.bodies;
 (
   nwr(${around})["landuse"~"^(industrial|quarry|landfill|farmland|orchard|plantation|farmyard|animal_keeping)$"];
   nwr(${around})["man_made"~"^(works|wastewater_plant|water_works|mineshaft)$"];
   nwr(${around})["amenity"="waste_transfer_station"];
 )->.risk;
-.water out tags center ${MAX_WATER_FEATURES};
+.waterways out tags geom ${MAX_WATERWAYS};
+.bodies out tags center ${MAX_WATER_BODIES};
 .risk out tags center ${MAX_RISK_FEATURES};`;
 }
 
@@ -152,6 +167,10 @@ export function elementCoordinate(
   if (element.center) {
     return { latitude: element.center.lat, longitude: element.center.lon };
   }
+  // `out geom` returns vertices but no center; use the first vertex so the
+  // element still participates in distance maths.
+  const first = element.geometry?.[0];
+  if (first) return { latitude: first.lat, longitude: first.lon };
   return null;
 }
 
