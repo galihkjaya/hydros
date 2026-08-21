@@ -192,8 +192,20 @@ export async function listRecentInvestigations(
 ): Promise<InvestigationSummary[]> {
   if (!isPersistenceEnabled()) return [];
 
+  type EmbeddedAssessment = {
+    risk_level: RiskAssessment["riskLevel"];
+    confidence: number;
+  };
+
+  /**
+   * `assessments.investigation_id` is both the primary key and the foreign key,
+   * so PostgREST detects a one-to-one relationship and embeds a single object —
+   * not an array. Both shapes are accepted here because that detection depends
+   * on the schema, and a to-many embed would otherwise silently produce a
+   * history list with no risk levels.
+   */
   type Row = InvestigationRow & {
-    assessments: Array<{ risk_level: RiskAssessment["riskLevel"]; confidence: number }> | null;
+    assessments: EmbeddedAssessment | EmbeddedAssessment[] | null;
   };
 
   const rows = await selectRows<Row>(
@@ -207,7 +219,9 @@ export async function listRecentInvestigations(
   );
 
   return rows.map((row) => {
-    const assessment = row.assessments?.[0];
+    const assessment = Array.isArray(row.assessments)
+      ? row.assessments[0]
+      : row.assessments;
     return {
       id: row.id,
       createdAt: row.created_at,

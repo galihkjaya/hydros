@@ -39,6 +39,15 @@ export type ChatRequest = {
   headers?: Record<string, string>;
   /** Retries on timeout, 429 and 5xx. One retry by default. */
   retries?: number;
+  /**
+   * Absolute epoch-ms deadline for this call, including retries.
+   *
+   * Without it, `timeoutMs * (retries + 1)` plus backoff is the real worst case:
+   * a 90s timeout with two retries can occupy 4.5 minutes on its own, and two
+   * such stages exceed the serverless limit. The deadline clamps each attempt to
+   * the time actually left and skips retries there is no room for.
+   */
+  deadline?: number;
 };
 
 const DEFAULT_TIMEOUT_MS = 45_000;
@@ -80,6 +89,7 @@ export async function chatCompletion(request: ChatRequest): Promise<string> {
     stage,
     headers = {},
     retries = 1,
+    deadline,
   } = request;
 
   const body = JSON.stringify({
@@ -92,9 +102,27 @@ export async function chatCompletion(request: ChatRequest): Promise<string> {
 
   let lastError: InvestigationError | null = null;
 
+  /** True when another attempt is allowed and there is time left for one. */
+  const canRetry = (attempt: number): boolean => {
+    if (attempt >= retries) return false;
+    if (!deadline) return true;
+    // Needs room for the backoff plus a usefully long attempt.
+    return deadline - Date.now() > backoffMs(attempt) + 5_000;
+  };
+
   for (let attempt = 0; attempt <= retries; attempt += 1) {
+    // Clamp this attempt to whatever time is left before the deadline.
+    const remaining = deadline ? deadline - Date.now() : Infinity;
+    if (remaining <= 0) {
+      throw (
+        lastError ??
+        new InvestigationError(stage, "The AI provider did not respond in time.")
+      );
+    }
+    const attemptTimeout = Math.min(timeoutMs, remaining);
+
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    const timer = setTimeout(() => controller.abort(), attemptTimeout);
 
     try {
       const response = await fetch(baseUrl, {
@@ -112,7 +140,7 @@ export async function chatCompletion(request: ChatRequest): Promise<string> {
         // Drain the body so the connection can be reused; never surface it.
         await response.text().catch(() => "");
         const error = new InvestigationError(stage, messageForStatus(response.status));
-        if (isRetryable(response.status) && attempt < retries) {
+        if (isRetryable(response.status) && canRetry(attempt)) {
           lastError = error;
           await backoff(attempt);
           continue;
@@ -130,7 +158,7 @@ export async function chatCompletion(request: ChatRequest): Promise<string> {
           stage,
           messageForStatus(bodyErrorStatus),
         );
-        if (isRetryable(bodyErrorStatus) && attempt < retries) {
+        if (isRetryable(bodyErrorStatus) && canRetry(attempt)) {
           lastError = error;
           await backoff(attempt);
           continue;
@@ -145,7 +173,7 @@ export async function chatCompletion(request: ChatRequest): Promise<string> {
           "The AI provider returned an empty response.",
         );
         // An empty completion is usually transient capacity, so retry once.
-        if (attempt < retries) {
+        if (canRetry(attempt)) {
           lastError = error;
           await backoff(attempt);
           continue;
@@ -164,7 +192,7 @@ export async function chatCompletion(request: ChatRequest): Promise<string> {
         "The AI provider did not respond in time.",
         { cause: error },
       );
-      if (attempt < retries) {
+      if (canRetry(attempt)) {
         lastError = wrapped;
         await backoff(attempt);
         continue;
@@ -178,9 +206,13 @@ export async function chatCompletion(request: ChatRequest): Promise<string> {
   throw lastError ?? new InvestigationError(stage, "The AI request failed.");
 }
 
+/** 800ms, 1.6s, 2.4s. Short enough to stay inside the serverless budget. */
+function backoffMs(attempt: number): number {
+  return 800 * (attempt + 1);
+}
+
 function backoff(attempt: number): Promise<void> {
-  // 800ms, 1.6s, 2.4s. Short enough to stay inside the serverless budget.
-  return new Promise((resolve) => setTimeout(resolve, 800 * (attempt + 1)));
+  return new Promise((resolve) => setTimeout(resolve, backoffMs(attempt)));
 }
 
 /** Pulls choices[0].message.content out of an unknown payload. */

@@ -206,6 +206,8 @@ export async function planResearch(input: {
   visual: VisualAnalysis;
   geographic: GeographicContext;
   userNote: string;
+  /** Absolute epoch-ms budget for this stage. */
+  deadline?: number;
 }): Promise<ResearchPlan> {
   try {
     const responseText = await askNemotron({
@@ -214,6 +216,7 @@ export async function planResearch(input: {
       stage: "research",
       maxTokens: 2000,
       temperature: 0.4,
+      deadline: input.deadline,
     });
 
     const plan = parseResearchPlan(responseText);

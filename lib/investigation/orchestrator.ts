@@ -13,11 +13,12 @@
  * - evidence: degrades to a sources-only package.
  * - reasoning: degrades to an honest INSUFFICIENT_DATA assessment.
  *
- * Timing. Measured end to end at ~145s: vision ~7s, Overpass ~30s, Nemotron
- * planning ~45s, search ~6s, Nemotron evidence ~80s, Groq ~3s. Vision and the
+ * Timing. Typical end to end is 75-180s: vision ~7s, Overpass ~10-30s, Nemotron
+ * planning ~50s, search ~6s, Nemotron evidence ~80s, Groq ~3s. Vision and the
  * geographic lookup run concurrently because they share no input; everything
  * else is genuinely sequential, since each stage consumes the previous one's
- * output. The free-tier Nemotron endpoint dominates the total.
+ * output. The free-tier Nemotron endpoint dominates, and occasionally stalls,
+ * which is why the model stages carry absolute deadlines (see below).
  */
 import { analyzeImage } from "@/lib/ai/vision";
 import { planResearch } from "@/lib/ai/research";
@@ -58,6 +59,25 @@ export type InvestigationResult = {
 
 /** Sources kept per investigation. Bounds the evidence prompt and the UI list. */
 const MAX_SOURCES = 12;
+
+/**
+ * Total budget for one investigation, and the share each model stage may take.
+ *
+ * Measured worst case was ~8 minutes, well past Vercel's 300s ceiling: the
+ * free-tier Nemotron endpoint occasionally stalls, and a 90s timeout with two
+ * retries lets a single stage occupy 4.5 minutes. Absolute deadlines bound each
+ * model stage so a slow provider degrades that stage rather than truncating the
+ * whole run mid-stream.
+ *
+ * Both Nemotron stages degrade gracefully when their budget runs out — research
+ * falls back to a mechanical plan, evidence to a sources-only package — so the
+ * user still reaches an assessment.
+ */
+const TOTAL_BUDGET_MS = 260_000;
+const RESEARCH_BUDGET_MS = 70_000;
+const EVIDENCE_BUDGET_MS = 90_000;
+/** Reserved so the final reasoning stage always gets its turn. */
+const REASONING_RESERVE_MS = 45_000;
 
 /**
  * Validates raw input into a trusted InvestigationInput.
@@ -117,6 +137,12 @@ export async function runInvestigation(
 
   emit({ type: "started", data: { investigationId } });
 
+  const startedAt = Date.now();
+  const runDeadline = startedAt + TOTAL_BUDGET_MS;
+  /** A stage budget, never extending past the run deadline or the reasoning reserve. */
+  const stageDeadline = (budgetMs: number): number =>
+    Math.min(Date.now() + budgetMs, runDeadline - REASONING_RESERVE_MS);
+
   try {
     // --- Stages 1 & 2: vision and geography, concurrently ------------------
     // They share no input, and the geographic lookup is the slowest non-model
@@ -150,6 +176,7 @@ export async function runInvestigation(
       visual,
       geographic,
       userNote: input.note,
+      deadline: stageDeadline(RESEARCH_BUDGET_MS),
     });
     emit({ type: "research_plan_ready", data: plan });
 
@@ -167,6 +194,7 @@ export async function runInvestigation(
       sources,
       userNote: input.note,
       failedQueries,
+      deadline: stageDeadline(EVIDENCE_BUDGET_MS),
     });
     emit({ type: "evidence_extracted", data: evidence.evidence });
     emit({ type: "evidence_ready", data: evidence });

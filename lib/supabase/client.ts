@@ -40,7 +40,16 @@ function serviceContext(): ServiceContext | null {
   return url && key ? { url, key } : null;
 }
 
-const TIMEOUT_MS = 10_000;
+/**
+ * Per-request budget.
+ *
+ * 20s rather than something tighter: a free-tier project cold-starts, and
+ * PostgREST reloads its schema cache after a migration, both of which pushed
+ * inserts past 10s in testing and aborted writes that would otherwise have
+ * succeeded. Nothing is waiting on these — they are awaited after the stream has
+ * already delivered every event — so a generous budget costs the user nothing.
+ */
+const TIMEOUT_MS = 20_000;
 
 /**
  * Performs a request against the project.

@@ -220,6 +220,7 @@ export async function extractEvidence({
   sources,
   userNote,
   failedQueries = [],
+  deadline,
 }: {
   visual: VisualAnalysis;
   geographic: GeographicContext;
@@ -227,6 +228,8 @@ export async function extractEvidence({
   sources: readonly Source[];
   userNote: string;
   failedQueries?: readonly string[];
+  /** Absolute epoch-ms budget for this stage. */
+  deadline?: number;
 }): Promise<EvidencePackage> {
   const ranked = [...sources]
     .sort((a, b) => b.relevance - a.relevance)
@@ -250,6 +253,7 @@ export async function extractEvidence({
         stage: "evidence",
         maxTokens: 3500,
         temperature: 0.2,
+        deadline,
       });
 
       const parsed = parseEvidence(

@@ -27,6 +27,8 @@ export type NemotronRequest = {
   maxTokens?: number;
   temperature?: number;
   timeoutMs?: number;
+  /** Absolute epoch-ms budget for this call including retries. */
+  deadline?: number;
 };
 
 /**
@@ -50,6 +52,7 @@ export async function askNemotron({
   maxTokens = DEFAULT_MAX_TOKENS,
   temperature = 0.3,
   timeoutMs = 90_000,
+  deadline,
 }: NemotronRequest): Promise<string> {
   const apiKey = requireEnv("OPENROUTER_API_KEY");
   const model = requireEnv("OPENROUTER_MODEL");
@@ -72,6 +75,7 @@ export async function askNemotron({
     // extractJsonObject() handles the fences and reasoning preambles.
     jsonMode: false,
     timeoutMs,
+    deadline,
     stage,
     headers: attributionHeaders(),
     // Free-tier capacity is intermittent and OpenRouter surfaces upstream

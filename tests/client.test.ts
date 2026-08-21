@@ -137,3 +137,43 @@ test("never includes the api key in an error message", async () => {
   );
   assert.doesNotMatch((error as Error).message, /sk-secret-value/);
 });
+
+test("a deadline clamps the attempt and skips retries with no time left", async () => {
+  // Deadline already passed: no request should be made at all.
+  const expired = await withFetch(
+    () => completion("should not be reached"),
+    () =>
+      chatCompletion({
+        ...request,
+        retries: 2,
+        deadline: Date.now() - 1,
+      }),
+  );
+  assert.equal(expired.calls, 0);
+  assert.match((expired.error as Error).message, /did not respond in time/);
+
+  // Enough budget for one attempt, not for a retry after backoff.
+  const noRoomToRetry = await withFetch(
+    () => json({}, 503),
+    () =>
+      chatCompletion({
+        ...request,
+        retries: 2,
+        deadline: Date.now() + 1_000,
+      }),
+  );
+  assert.equal(noRoomToRetry.calls, 1);
+
+  // Ample budget: the retry happens as normal.
+  const retried = await withFetch(
+    (n) => (n === 1 ? json({}, 503) : completion("recovered")),
+    () =>
+      chatCompletion({
+        ...request,
+        retries: 2,
+        deadline: Date.now() + 60_000,
+      }),
+  );
+  assert.equal(retried.calls, 2);
+  assert.equal(retried.value, "recovered");
+});
