@@ -1,5 +1,5 @@
 import { Badge } from "@/components/ui/primitives";
-import type { StageId, TimelineStage } from "./view-model";
+import type { TimelineStage } from "./view-model";
 
 /**
  * Headline status: the single sentence describing what is happening now, plus
@@ -9,10 +9,13 @@ export function InvestigationStatus({
   stages,
   finished,
   error,
+  currentQuery,
 }: {
   stages: readonly TimelineStage[];
   finished: boolean;
   error?: string;
+  /** Shown while the search stage is running, so progress is visibly real. */
+  currentQuery?: string;
 }) {
   const active = stages.find((stage) => stage.state === "active");
   const failed = stages.find((stage) => stage.state === "failed");
@@ -31,9 +34,7 @@ export function InvestigationStatus({
     <div>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2.5">
-          {!finished && !error && !failed ? (
-            <Spinner />
-          ) : null}
+          {!finished && !error && !failed ? <Spinner /> : null}
           <p
             aria-live="polite"
             className="text-[0.9375rem] font-medium text-foreground"
@@ -45,6 +46,13 @@ export function InvestigationStatus({
           {error || failed ? "Incomplete" : finished ? "Done" : `${progress}%`}
         </Badge>
       </div>
+
+      {/* The live query makes it obvious the work is real, not a canned animation. */}
+      {currentQuery && !finished && !error ? (
+        <p className="wl-mono mt-1.5 truncate text-subtle">
+          “{currentQuery}”
+        </p>
+      ) : null}
 
       {/* Progress rail. aria-hidden: the text above already conveys state. */}
       <div
@@ -73,13 +81,4 @@ function Spinner() {
       className="size-4 shrink-0 animate-spin rounded-full border-2 border-line-strong border-t-accent"
     />
   );
-}
-
-/** Stage ids whose panels are only meaningful once the stage has run. */
-export function isStageReached(
-  stages: readonly TimelineStage[],
-  id: StageId,
-): boolean {
-  const stage = stages.find((candidate) => candidate.id === id);
-  return stage ? stage.state === "done" || stage.state === "active" : false;
 }

@@ -28,3 +28,6 @@ yarn-error.log*
 
 # test build output
 .test-build/
+
+# supabase cli
+supabase/.temp/
