@@ -9,7 +9,7 @@ import { SourceGathering } from "./SourceGathering";
 import { SourceRow } from "./EvidenceCard";
 import { GeographicContextPanel, VisualObservations } from "./ContextPanels";
 import { RiskAssessment } from "./RiskAssessment";
-import { useMockInvestigation, useWorkspaceState } from "./useInvestigation";
+import { useInvestigationStream } from "./useInvestigation";
 import { useDraft } from "@/lib/investigation/draft";
 import { formatCoordinate } from "@/lib/utils/validation";
 
@@ -17,19 +17,20 @@ import { formatCoordinate } from "@/lib/utils/validation";
  * Investigation workspace.
  *
  * Layout: status and timeline in a sticky rail, evidence and assessment in the
- * main column. Panels appear as their stage produces data rather than all at
- * once, so the screen reflects the investigation's actual progress.
- *
- * The pipeline is not connected yet — a scripted mock driver supplies the
- * events and the banner below says so plainly. Commit 22 swaps the driver for
- * the real event stream.
+ * main column. Panels appear as their stage produces data, driven by real
+ * server-sent events — nothing here is on a timer.
  */
-export function InvestigationWorkspace({ investigationId }: { investigationId: string }) {
-  const [state, dispatch] = useWorkspaceState();
+export function InvestigationWorkspace({
+  investigationId,
+}: {
+  investigationId: string;
+}) {
   // undefined until the client has read sessionStorage; null when absent.
   const draft = useDraft(investigationId);
-
-  useMockInvestigation(dispatch, !!draft);
+  const { state, connectionError } = useInvestigationStream(
+    draft,
+    investigationId,
+  );
 
   if (draft === null) {
     return (
@@ -49,142 +50,178 @@ export function InvestigationWorkspace({ investigationId }: { investigationId: s
     );
   }
 
-  const searching = state.stages.some(
-    (stage) => stage.id === "search" && stage.state === "active",
-  );
+  const searchStage = state.stages.find((stage) => stage.id === "search");
+  const searching = searchStage?.state === "active";
+  const error = state.error ?? connectionError;
 
   return (
-    <div className="space-y-6">
-      {/* Mock notice: removed with the mock driver in commit 22. */}
-      <p className="rounded-lg border border-risk-medium/40 bg-risk-medium/10 px-4 py-2.5 text-[0.8125rem]">
-        <span className="font-semibold">Interface preview.</span> The pipeline is
-        not connected yet, so the results below are scripted placeholder data,
-        not a real investigation.
-      </p>
+    <div className="grid gap-6 lg:grid-cols-5">
+      {/* Rail: input recap, status, timeline */}
+      <div className="space-y-6 lg:col-span-2">
+        <Card className="overflow-hidden lg:sticky lg:top-20">
+          {draft ? (
+            <div className="relative aspect-[4/3] w-full bg-surface-muted">
+              <Image
+                src={draft.imageDataUrl}
+                alt="The water source under investigation"
+                fill
+                unoptimized
+                sizes="(max-width: 1024px) 100vw, 400px"
+                className="object-cover"
+              />
+            </div>
+          ) : null}
 
-      <div className="grid gap-6 lg:grid-cols-5">
-        {/* Rail: input recap, status, timeline */}
-        <div className="space-y-6 lg:col-span-2">
-          <Card className="overflow-hidden lg:sticky lg:top-20">
+          <div className="space-y-5 p-5">
             {draft ? (
-              <div className="relative aspect-[4/3] w-full bg-surface-muted">
-                <Image
-                  src={draft.imageDataUrl}
-                  alt="The water source under investigation"
-                  fill
-                  unoptimized
-                  sizes="(max-width: 1024px) 100vw, 400px"
-                  className="object-cover"
-                />
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+                <span className="wl-mono text-muted">
+                  {formatCoordinate(draft.latitude)},{" "}
+                  {formatCoordinate(draft.longitude)}
+                </span>
+                <a
+                  href={`https://www.openstreetmap.org/?mlat=${draft.latitude}&mlon=${draft.longitude}#map=15/${draft.latitude}/${draft.longitude}`}
+                  target="_blank"
+                  rel="noreferrer noopener"
+                  className="text-[0.8125rem] underline decoration-line-strong underline-offset-2 hover:text-foreground"
+                >
+                  View on OpenStreetMap
+                </a>
               </div>
             ) : null}
 
-            <div className="space-y-5 p-5">
-              {draft ? (
-                <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
-                  <span className="wl-mono text-muted">
-                    {formatCoordinate(draft.latitude)},{" "}
-                    {formatCoordinate(draft.longitude)}
-                  </span>
-                  <a
-                    href={`https://www.openstreetmap.org/?mlat=${draft.latitude}&mlon=${draft.longitude}#map=15/${draft.latitude}/${draft.longitude}`}
-                    target="_blank"
-                    rel="noreferrer noopener"
-                    className="text-[0.8125rem] underline decoration-line-strong underline-offset-2 hover:text-foreground"
-                  >
-                    View on OpenStreetMap
-                  </a>
-                </div>
-              ) : null}
-
-              {draft?.note ? (
-                <div>
-                  <p className="wl-label">Your observation</p>
-                  <p className="mt-1 text-[0.875rem] leading-6 text-muted">
-                    {draft.note}
-                  </p>
-                </div>
-              ) : null}
-
-              <div className="border-t border-line pt-5">
-                <InvestigationStatus
-                  stages={state.stages}
-                  finished={state.finished}
-                  error={state.error}
-                />
+            {state.visual?.summary ? (
+              <div>
+                <p className="wl-label">Scene</p>
+                <p className="mt-1 text-[0.875rem] leading-6 text-muted">
+                  {state.visual.summary}
+                </p>
               </div>
+            ) : null}
 
-              <div className="border-t border-line pt-5">
-                <p className="wl-label mb-3">Progress</p>
-                <InvestigationTimeline stages={state.stages} />
+            {draft?.note ? (
+              <div>
+                <p className="wl-label">Your observation</p>
+                <p className="mt-1 text-[0.875rem] leading-6 text-muted">
+                  {draft.note}
+                </p>
               </div>
-            </div>
-          </Card>
-        </div>
+            ) : null}
 
-        {/* Main column */}
-        <div className="space-y-6 lg:col-span-3">
-          <Card className="p-5 sm:p-6">
-            <SectionHeading
-              label="Observation"
-              title="What is visible in the photograph"
-              action={
-                state.observations.length > 0 ? (
-                  <Badge tone="neutral">{state.observations.length}</Badge>
-                ) : null
-              }
-            />
-            <div className="mt-4">
-              <VisualObservations observations={state.observations} />
+            <div className="border-t border-line pt-5">
+              <InvestigationStatus
+                stages={state.stages}
+                finished={state.finished}
+                error={error}
+                currentQuery={state.currentQuery}
+              />
             </div>
-          </Card>
 
-          <Card className="p-5 sm:p-6">
-            <SectionHeading
-              label="Context"
-              title="Nearby mapped features"
-              action={
-                state.geoSources.length > 0 ? (
-                  <Badge tone="neutral">{state.geoSources.length}</Badge>
-                ) : null
-              }
-            />
-            <div className="mt-4">
-              <GeographicContextPanel sources={state.geoSources} />
+            <div className="border-t border-line pt-5">
+              <p className="wl-label mb-3">Progress</p>
+              <InvestigationTimeline stages={state.stages} />
             </div>
-          </Card>
 
-          <Card className="p-5 sm:p-6">
-            <SectionHeading
-              label="Sources"
-              title="Where the information came from"
+            {error ? (
+              <div className="border-t border-line pt-5">
+                <Link
+                  href="/investigate"
+                  className="inline-flex h-10 items-center justify-center rounded-lg border border-line-strong px-4 text-sm font-medium transition-colors hover:bg-surface-muted"
+                >
+                  Start a new investigation
+                </Link>
+              </div>
+            ) : null}
+          </div>
+        </Card>
+      </div>
+
+      {/* Main column */}
+      <div className="space-y-6 lg:col-span-3">
+        <Card className="p-5 sm:p-6">
+          <SectionHeading
+            label="Observation"
+            title="What is visible in the photograph"
+            action={
+              state.visual ? (
+                <Badge tone="neutral">{state.visual.observations.length}</Badge>
+              ) : null
+            }
+          />
+          <div className="mt-4">
+            <VisualObservations
+              observations={state.visual?.observations ?? []}
             />
-            <SourceGathering sources={state.sources} searching={searching} />
-            {state.sources.length > 0 ? (
-              <div className="mt-2 space-y-2">
-                {state.sources.map((source) => (
-                  <SourceRow key={source.url} source={source} />
+          </div>
+          {state.visual && state.visual.limitations.length > 0 ? (
+            <details className="mt-4 border-t border-line pt-3">
+              <summary className="cursor-pointer text-[0.8125rem] text-muted">
+                What this photograph cannot show
+              </summary>
+              <ul className="mt-2 space-y-1">
+                {state.visual.limitations.map((limitation) => (
+                  <li key={limitation} className="text-[0.8125rem] text-subtle">
+                    {limitation}
+                  </li>
                 ))}
-              </div>
-            ) : null}
-          </Card>
+              </ul>
+            </details>
+          ) : null}
+        </Card>
 
-          {state.assessment ? (
-            <RiskAssessment
-              assessment={state.assessment}
-              sources={state.sources}
+        <Card className="p-5 sm:p-6">
+          <SectionHeading
+            label="Context"
+            title="Nearby mapped features"
+            action={
+              state.geoSources.length > 0 ? (
+                <Badge tone="neutral">{state.geoSources.length}</Badge>
+              ) : null
+            }
+          />
+          <div className="mt-4">
+            <GeographicContextPanel sources={state.geoSources} />
+          </div>
+        </Card>
+
+        <Card className="p-5 sm:p-6">
+          <SectionHeading
+            label="Sources"
+            title="Where the information came from"
+            action={
+              state.sources.length > 0 ? (
+                <Badge tone="neutral">{state.sources.length}</Badge>
+              ) : null
+            }
+          />
+          <SourceGathering sources={state.sources} searching={searching} />
+          {state.sources.length > 0 ? (
+            <div className="mt-2 space-y-2">
+              {state.sources.map((source) => (
+                <SourceRow key={source.url} source={source} />
+              ))}
+            </div>
+          ) : null}
+        </Card>
+
+        {state.assessment ? (
+          <RiskAssessment
+            assessment={state.assessment}
+            sources={state.sources}
+          />
+        ) : (
+          <Card className="p-5 sm:p-6">
+            <SectionHeading
+              label="Assessment"
+              title={error ? "Not produced" : "Pending"}
             />
-          ) : (
-            <Card className="p-5 sm:p-6">
-              <SectionHeading label="Assessment" title="Pending" />
-              <p className="mt-3 text-[0.875rem] text-muted">
-                The assessment appears once the evidence has been gathered and
-                reasoned over. It will state a risk level, its confidence, and
-                what it cannot determine.
-              </p>
-            </Card>
-          )}
-        </div>
+            <p className="mt-3 text-[0.875rem] text-muted">
+              {error
+                ? "The investigation stopped before an assessment could be produced. Anything gathered before that point is shown above."
+                : "The assessment appears once the evidence has been gathered and reasoned over. It will state a risk level, its confidence, and what it cannot determine."}
+            </p>
+          </Card>
+        )}
       </div>
     </div>
   );
