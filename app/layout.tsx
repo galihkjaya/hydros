@@ -13,8 +13,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
-      <body>{children}</body>
+    // suppressHydrationWarning: the theme class is applied before hydration.
+    <html lang="en" suppressHydrationWarning>
+      <body className="min-h-dvh bg-background text-foreground antialiased">
+        {children}
+      </body>
     </html>
   );
 }
