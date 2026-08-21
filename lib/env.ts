@@ -22,8 +22,8 @@ export class ConfigError extends Error {
 type ServerVar =
   | "NVIDIA_API_KEY"
   | "NVIDIA_VISION_MODEL"
-  | "OPENROUTER_API_KEY"
-  | "OPENROUTER_MODEL"
+  | "CEREBRAS_API_KEY"
+  | "CEREBRAS_MODEL"
   | "GROQ_API_KEY"
   | "GROQ_MODEL"
   | "SEARCH_API_KEY"
@@ -52,7 +52,8 @@ export function optionalEnv(name: ServerVar | PublicVar): string | undefined {
 export function hasInvestigationCredentials(): boolean {
   return (
     !!read("NVIDIA_API_KEY") &&
-    !!read("OPENROUTER_API_KEY") &&
+    !!read("CEREBRAS_API_KEY") &&
+    !!read("CEREBRAS_MODEL") &&
     !!read("GROQ_API_KEY") &&
     !!read("SEARCH_API_KEY")
   );

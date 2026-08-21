@@ -30,13 +30,13 @@ image + location + optional note
   └─ OSM / Overpass + Nominatim ┘
         │
         ▼
-  Nemotron research plan  →  search queries
+  Cerebras research plan  →  search queries
         │
         ▼
   SearchAPI.io  →  classified, scored sources
         │
         ▼
-  Nemotron evidence synthesis  →  compact EvidencePackage
+  Cerebras evidence synthesis  →  compact EvidencePackage
         │
         ▼
   Groq reasoning  →  RiskAssessment
@@ -45,7 +45,8 @@ image + location + optional note
 Stages stream to the browser as Server-Sent Events, so the progress shown is
 real backend activity rather than an animation on a timer.
 
-Measured end to end: ~75–180 s. The free-tier Nemotron endpoint dominates.
+Research requests are serialized through a conservative five-RPM Cerebras
+queue. Search results are batched into one evidence-synthesis request.
 
 ### Failure policy
 
@@ -75,8 +76,8 @@ Open http://localhost:3000.
 NVIDIA_API_KEY=              # NVIDIA NIM
 NVIDIA_VISION_MODEL=nvidia/nemotron-3-nano-omni-30b-a3b-reasoning
 
-OPENROUTER_API_KEY=          # OpenRouter
-OPENROUTER_MODEL=nvidia/nemotron-3-ultra-550b-a55b:free
+CEREBRAS_API_KEY=            # Cerebras
+CEREBRAS_MODEL=gpt-oss-120b
 
 GROQ_API_KEY=                # Groq
 GROQ_MODEL=openai/gpt-oss-120b
@@ -160,7 +161,7 @@ app/
 components/
   investigation/  layout/  map/  ui/  upload/
 lib/
-  ai/         client, vision, nemotron, groq, prompts, coercion
+  ai/         client, vision, cerebras, groq, prompts, coercion
   search/     provider and source classification
   geo/        overpass, osm, geocode, upstream, context
   investigation/  orchestrator, events, errors

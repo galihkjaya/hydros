@@ -2,7 +2,7 @@
  * Self-check for the shared provider transport.
  *
  * `fetch` is stubbed, so no network access. The cases here are the ones observed
- * in practice against NVIDIA NIM, OpenRouter and Groq.
+ * in practice against NVIDIA NIM and Groq.
  */
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -77,7 +77,7 @@ test("ignores reasoning_content from reasoning models", async () => {
 });
 
 test("treats an HTTP 200 body-level error as a failure and retries", async () => {
-  // OpenRouter reports upstream overload this way.
+  // Some providers report upstream overload this way.
   const { error, calls } = await withFetch(
     (n) =>
       n === 1
