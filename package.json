@@ -9,7 +9,7 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "check-env": "node scripts/check-env.mjs",
-    "test": "tsc -p tsconfig.test.json && node --test \".test-build/tests/*.test.js\""
+    "test": "tsc -p tsconfig.test.json && node scripts/fix-test-aliases.mjs && node --test \".test-build/tests/*.test.js\""
   },
   "dependencies": {
     "next": "16.3.2",
