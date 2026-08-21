@@ -6,7 +6,7 @@
  * connection active well inside proxy idle timeouts.
  *
  * All provider credentials stay here: the browser never talks to NVIDIA,
- * OpenRouter, Groq or the search API directly.
+ * Cerebras, Groq or the search API directly.
  */
 import { runInvestigation, validateInput } from "@/lib/investigation/orchestrator";
 import { encodeEvent, encodeKeepAlive } from "@/lib/investigation/events";

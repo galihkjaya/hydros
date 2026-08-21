@@ -12,6 +12,7 @@
     "test": "tsc -p tsconfig.test.json && node scripts/fix-test-aliases.mjs && node --test \".test-build/tests/*.test.js\""
   },
   "dependencies": {
+    "@cerebras/cerebras_cloud_sdk": "^1.91.0",
     "next": "16.3.2",
     "react": "19.2.8",
     "react-dom": "19.2.8"

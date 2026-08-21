@@ -10,8 +10,8 @@ import { readFileSync, existsSync } from "node:fs";
 const REQUIRED_FOR_INVESTIGATION = [
   "NVIDIA_API_KEY",
   "NVIDIA_VISION_MODEL",
-  "OPENROUTER_API_KEY",
-  "OPENROUTER_MODEL",
+  "CEREBRAS_API_KEY",
+  "CEREBRAS_MODEL",
   "GROQ_API_KEY",
   "GROQ_MODEL",
   "SEARCH_API_KEY",

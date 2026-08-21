@@ -12,6 +12,9 @@ export const metadata: Metadata = {
   description:
     "Investigate a water source from a photograph, its location and public records. WaterLens separates what is observed, what is documented, and what can only be inferred.",
   applicationName: "WaterLens",
+  icons: {
+    icon: "/src/logo.svg",
+  },
 };
 
 export default function RootLayout({
