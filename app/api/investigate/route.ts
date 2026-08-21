@@ -12,6 +12,17 @@ import { runInvestigation, validateInput } from "@/lib/investigation/orchestrato
 import { encodeEvent, encodeKeepAlive } from "@/lib/investigation/events";
 import { isInvestigationError } from "@/lib/investigation/errors";
 import { toSafeErrorMessage } from "@/lib/env";
+import {
+  createInvestigation,
+  isPersistenceEnabled,
+  persistAssessment,
+  persistEvidence,
+  persistFailure,
+  persistGeographic,
+  persistImage,
+  persistSources,
+  persistVisual,
+} from "@/lib/supabase/store";
 import type { InvestigationEvent } from "@/types/events";
 
 /** Node runtime: the pipeline uses Node APIs and long-running fetches. */
@@ -28,6 +39,10 @@ const KEEP_ALIVE_MS = 15_000;
 
 /** Request body cap. The image dominates; 12 MB leaves headroom over the 8 MB limit. */
 const MAX_BODY_BYTES = 12 * 1024 * 1024;
+
+/** Client-supplied ids must be uuids, since that is the database primary key type. */
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export async function POST(request: Request): Promise<Response> {
   // Parse and validate before opening the stream, so input errors are ordinary
@@ -53,9 +68,10 @@ export async function POST(request: Request): Promise<Response> {
       longitude: body.longitude,
       note: body.note,
     });
+    // The id becomes a uuid primary key, so anything else is replaced rather
+    // than passed through to fail the insert.
     investigationId =
-      typeof body.investigationId === "string" &&
-      /^[a-zA-Z0-9-]{1,64}$/.test(body.investigationId)
+      typeof body.investigationId === "string" && UUID_PATTERN.test(body.investigationId)
         ? body.investigationId
         : crypto.randomUUID();
   } catch (error) {
@@ -83,20 +99,66 @@ export async function POST(request: Request): Promise<Response> {
 
       const keepAlive = setInterval(() => send(encodeKeepAlive()), KEEP_ALIVE_MS);
 
+      /**
+       * Persistence runs alongside the stream, not inside it.
+       *
+       * Writes are fired as their data becomes available and awaited only at the
+       * end, so a slow database never delays an event reaching the user. Every
+       * write already swallows its own failures.
+       */
+      const writes: Array<Promise<unknown>> = [];
+      const persist = (work: () => Promise<unknown>) => {
+        if (!isPersistenceEnabled()) return;
+        writes.push(work().catch(() => undefined));
+      };
+
+      persist(() =>
+        createInvestigation(investigationId, input.location, input.note).then(
+          // Chained: the image row update needs the parent row to exist first.
+          () => persistImage(investigationId, input.imageDataUrl),
+        ),
+      );
+
+      const emitAndPersist = (event: InvestigationEvent) => {
+        emit(event);
+        switch (event.type) {
+          case "vision_completed":
+            persist(() => persistVisual(investigationId, event.data));
+            break;
+          case "geo_search_completed":
+            persist(() => persistGeographic(investigationId, event.data));
+            break;
+          case "evidence_ready":
+            persist(() => persistSources(investigationId, event.data.sources));
+            persist(() => persistEvidence(investigationId, event.data.evidence));
+            break;
+          case "assessment_completed":
+            persist(() => persistAssessment(investigationId, event.data));
+            break;
+          case "failed":
+            persist(() => persistFailure(investigationId, event.data.message));
+            break;
+          default:
+            break;
+        }
+      };
+
       try {
-        await runInvestigation(input, emit, investigationId);
+        await runInvestigation(input, emitAndPersist, investigationId);
       } catch (error) {
         // runInvestigation has already emitted a `failed` event with a
         // user-safe message; this catch only prevents an unhandled rejection.
         // Emit a fallback if the failure escaped before any event was sent.
         if (!isInvestigationError(error)) {
-          emit({
+          emitAndPersist({
             type: "failed",
             data: { stage: "input", message: toSafeErrorMessage(error) },
           });
         }
       } finally {
         clearInterval(keepAlive);
+        // Let the pending writes finish before the function can be frozen.
+        await Promise.allSettled(writes);
         closed = true;
         try {
           controller.close();

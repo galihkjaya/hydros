@@ -9,6 +9,7 @@ import { SourceGathering } from "./SourceGathering";
 import { SourceRow } from "./EvidenceCard";
 import { GeographicContextPanel, VisualObservations } from "./ContextPanels";
 import { RiskAssessment } from "./RiskAssessment";
+import { WaterMap } from "@/components/map/WaterMap";
 import { useInvestigationStream } from "./useInvestigation";
 import { useDraft } from "@/lib/investigation/draft";
 import { formatCoordinate } from "@/lib/utils/validation";
@@ -182,6 +183,16 @@ export function InvestigationWorkspace({
           <div className="mt-4">
             <GeographicContextPanel sources={state.geoSources} />
           </div>
+          {draft ? (
+            <div className="mt-5 border-t border-line pt-5">
+              <WaterMap
+                location={{
+                  latitude: draft.latitude,
+                  longitude: draft.longitude,
+                }}
+              />
+            </div>
+          ) : null}
         </Card>
 
         <Card className="p-5 sm:p-6">
