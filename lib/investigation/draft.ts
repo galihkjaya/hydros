@@ -12,6 +12,7 @@
  * new tab. Move the handoff to a server-side upload + row id (commit 24's
  * Supabase persistence) if drafts need to be shareable or resumable.
  */
+import { useSyncExternalStore } from "react";
 
 export type InvestigationDraft = {
   /** JPEG data URL produced by prepareImage(). */
@@ -64,4 +65,34 @@ export function loadDraft(id: string): InvestigationDraft | null {
 
 export function clearDraft(id: string): void {
   sessionStorage.removeItem(PREFIX + id);
+  snapshots.delete(id);
+}
+
+/**
+ * Cached snapshots so `getSnapshot` below returns a referentially stable value,
+ * as useSyncExternalStore requires.
+ */
+const snapshots = new Map<string, InvestigationDraft | null>();
+
+/** Never changes after load, so there is nothing to subscribe to. */
+function subscribe(): () => void {
+  return () => {};
+}
+
+/**
+ * Reads the draft through useSyncExternalStore — the supported way to consume
+ * a browser-only store, and it avoids a setState-in-effect round trip.
+ *
+ * Returns `undefined` while the value is still unknown (server render and
+ * hydration) and `null` when the draft genuinely does not exist.
+ */
+export function useDraft(id: string): InvestigationDraft | null | undefined {
+  return useSyncExternalStore(
+    subscribe,
+    () => {
+      if (!snapshots.has(id)) snapshots.set(id, loadDraft(id));
+      return snapshots.get(id) ?? null;
+    },
+    () => undefined,
+  );
 }
