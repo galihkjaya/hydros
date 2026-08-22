@@ -11,11 +11,7 @@
 <p align="center">
   <a href="https://waterlens.vercel.app">Live Demo</a>
   ·
-  <a href="(https://devpost.com/software/waterlens)">Devpost</a>
-</p>
-
-<p align="center">
-  <sub>Replace the placeholder links above with the published project URLs.</sub>
+  <a href="https://devpost.com/software/waterlens">Devpost</a>
 </p>
 
 ## See it
