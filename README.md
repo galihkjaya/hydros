@@ -9,11 +9,9 @@
 </p>
 
 <p align="center">
-  <a href="YOUR_LIVE_DEMO_URL">Live Demo</a>
+  <a href="https://waterlens.vercel.app">Live Demo</a>
   ·
-  <a href="YOUR_DEMO_VIDEO_URL">Demo Video</a>
-  ·
-  <a href="YOUR_DEVPOST_URL">Devpost</a>
+  <a href="(https://devpost.com/software/waterlens)">Devpost</a>
 </p>
 
 <p align="center">
