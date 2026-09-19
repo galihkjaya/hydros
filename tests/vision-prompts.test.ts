@@ -56,12 +56,12 @@ test("drops observations asserting safety, pathogens or chemistry", () => {
     isWaterVisible: true,
     summary: "A stream.",
     observations: [
-      { attribute: "color", description: "The water appears brown.", confidence: 0.9 },
-      { attribute: "other", description: "This water is safe to drink.", confidence: 0.9 },
-      { attribute: "other", description: "The water contains E. coli.", confidence: 0.8 },
-      { attribute: "other", description: "Contaminated with mercury.", confidence: 0.8 },
-      { attribute: "other", description: "The pH is around 5.", confidence: 0.8 },
-      { attribute: "other", description: "The water appears unsafe.", confidence: 0.8 },
+      { attribute: "color", description: "The water appears brown.", confidence: 0.9, provenance: "model" },
+      { attribute: "other", description: "This water is safe to drink.", confidence: 0.9, provenance: "model" },
+      { attribute: "other", description: "The water contains E. coli.", confidence: 0.8, provenance: "model" },
+      { attribute: "other", description: "Contaminated with mercury.", confidence: 0.8, provenance: "model" },
+      { attribute: "other", description: "The pH is around 5.", confidence: 0.8, provenance: "model" },
+      { attribute: "other", description: "The water appears unsafe.", confidence: 0.8, provenance: "model" },
     ],
     limitations: [],
   });
@@ -85,8 +85,8 @@ test("keeps legitimate descriptive wording", () => {
     isWaterVisible: true,
     summary: "Brown, cloudy water with foam near the bank.",
     observations: [
-      { attribute: "foam", description: "Pale foam collects at the bank.", confidence: 0.6 },
-      { attribute: "turbidity", description: "Visibly cloudy throughout.", confidence: 0.8 },
+      { attribute: "foam", description: "Pale foam collects at the bank.", confidence: 0.6, provenance: "model" },
+      { attribute: "turbidity", description: "Visibly cloudy throughout.", confidence: 0.8, provenance: "model" },
     ],
     limitations: [],
   });

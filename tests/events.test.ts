@@ -91,7 +91,9 @@ test("every stage has at least one start and one completion event", () => {
     { type: "search_started" },
     { type: "search_completed", data: { sourceCount: 0 } },
     { type: "evidence_analysis_started" },
-    { type: "evidence_ready", data: { visual: { isWaterVisible: true, summary: "", observations: [], limitations: [] }, userNote: "", geographic: { location: { latitude: 0, longitude: 0 }, radiusMetres: 2000, waterways: [], potentialRiskSources: [] }, sources: [], evidence: [], unansweredQuestions: [], limitations: [] } },
+    { type: "evidence_ready", data: { visual: { isWaterVisible: true, summary: "", observations: [], limitations: [] }, userNote: "", geographic: { location: { latitude: 0, longitude: 0 }, radiusMetres: 2000, waterways: [], potentialRiskSources: [] }, sources: [], evidence: [], healthPathways: [], unansweredQuestions: [], limitations: [] } },
+    { type: "health_analysis_started" },
+    { type: "health_pathways_ready", data: [] },
     { type: "final_reasoning_started" },
     { type: "assessment_completed", data: { riskLevel: "INSUFFICIENT_DATA", confidence: 0.1, summary: "", riskFactors: [], evidence: [], recommendation: "", limitations: [] } },
   ];
@@ -111,6 +113,16 @@ test("every stage has at least one start and one completion event", () => {
 
 test("lifecycle events belong to no stage", () => {
   assert.equal(stageForEvent({ type: "started", data: { investigationId: "x" } }), null);
+  assert.equal(
+    stageForEvent({
+      type: "awaiting_confirmation",
+      data: {
+        visual: { isWaterVisible: true, summary: "", observations: [], limitations: [] },
+        geographic: { location: { latitude: 0, longitude: 0 }, radiusMetres: 2000, waterways: [], potentialRiskSources: [] },
+      },
+    }),
+    null,
+  );
   assert.equal(stageForEvent({ type: "completed" }), null);
   assert.equal(
     stageForEvent({ type: "failed", data: { stage: "vision", message: "m" } }),

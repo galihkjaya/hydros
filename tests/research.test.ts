@@ -44,7 +44,7 @@ const visual: VisualAnalysis = {
   isWaterVisible: true,
   summary: "Brown water.",
   observations: [
-    { attribute: "color", description: "The water appears brown.", confidence: 0.9 },
+    { attribute: "color", description: "The water appears brown.", confidence: 0.9, provenance: "model" },
   ],
   limitations: [],
 };

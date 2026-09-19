@@ -12,6 +12,7 @@ import type {
   EvidencePackage,
   GeographicContext,
   GeographicSource,
+  HealthPathway,
   Location,
   ResearchPlan,
   RiskAssessment,
@@ -26,6 +27,7 @@ export const INVESTIGATION_STAGES = [
   "research",
   "search",
   "evidence",
+  "health",
   "reasoning",
 ] as const;
 
@@ -50,8 +52,16 @@ export type InvestigationEvent =
   | { type: "evidence_analysis_started" }
   | { type: "evidence_extracted"; data: Evidence[] }
   | { type: "evidence_ready"; data: EvidencePackage }
+  | { type: "health_analysis_started" }
+  /** One Health exposure pathways. A bridge, never an inference. */
+  | { type: "health_pathways_ready"; data: HealthPathway[] }
   | { type: "final_reasoning_started" }
   | { type: "assessment_completed"; data: RiskAssessment }
+  /** Phase A is done; the run pauses for human confirmation of observations. */
+  | {
+      type: "awaiting_confirmation";
+      data: { visual: VisualAnalysis; geographic: GeographicContext };
+    }
   | { type: "completed" }
   /** Terminal failure. `message` is always user-safe. */
   | { type: "failed"; data: { stage: InvestigationStage | "input"; message: string } };

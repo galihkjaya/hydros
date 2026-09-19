@@ -122,6 +122,7 @@ export function parseVisualAnalysis(responseText: string): VisualAnalysis {
       attribute: coerceEnum(raw.attribute, VISUAL_ATTRIBUTES, "other"),
       description: coerceString(raw.description, 300),
       confidence: coerceConfidence(raw.confidence, 0.5),
+      provenance: "model" as const,
     }))
     .filter((observation) => observation.description.length > 0);
 

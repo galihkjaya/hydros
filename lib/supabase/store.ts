@@ -23,11 +23,14 @@ import type {
 import type {
   Evidence,
   GeographicContext,
+  GuidedResponses,
+  HealthPathway,
   Investigation,
   Location,
   RiskAssessment,
   Source,
   VisualAnalysis,
+  VisualObservation,
 } from "@/types/investigation";
 
 export { isPersistenceEnabled };
@@ -83,6 +86,58 @@ export async function persistVisual(
 ): Promise<void> {
   if (!isPersistenceEnabled()) return;
   await patchRow("investigations", id, { visual });
+}
+
+/**
+ * Phase A draft: persists the model's observations and geography with
+ * `awaiting_confirmation` so the run can pause for human review and resume
+ * from the confirmed set — including from another session.
+ */
+export async function persistDraftPhase(
+  id: string,
+  location: Location,
+  userNote: string,
+  visual: VisualAnalysis,
+  geographic: GeographicContext,
+  guidedResponses?: GuidedResponses,
+): Promise<void> {
+  if (!isPersistenceEnabled()) return;
+  await upsertRow("investigations", {
+    id,
+    status: "awaiting_confirmation",
+    latitude: location.latitude,
+    longitude: location.longitude,
+    place_name: geographic.location.displayName ?? null,
+    country_code: geographic.location.countryCode ?? null,
+    user_note: userNote,
+    image_url: null,
+    visual,
+    geographic,
+    health_pathways: [],
+    guided_responses: guidedResponses ?? null,
+    error: null,
+  });
+}
+
+/** Phase B start: stores the confirmed set and reopens the run. */
+export async function persistConfirmedVisual(
+  id: string,
+  observations: VisualObservation[],
+  visual: VisualAnalysis,
+): Promise<void> {
+  if (!isPersistenceEnabled()) return;
+  await patchRow("investigations", id, {
+    status: "running",
+    visual: { ...visual, observations },
+  });
+}
+
+export async function persistHealthPathways(
+  id: string,
+  pathways: HealthPathway[],
+): Promise<void> {
+  if (!isPersistenceEnabled() || pathways.length === 0) return;
+  await patchRow("investigations", id, { health_pathways: pathways });
 }
 
 export async function persistGeographic(
@@ -297,6 +352,8 @@ export async function getInvestigation(
     ...(row.image_url ? { imageUrl: row.image_url } : {}),
     ...(row.visual ? { visual: row.visual } : {}),
     ...(row.geographic ? { geographic: row.geographic } : {}),
+    healthPathways: row.health_pathways ?? [],
+    ...(row.guided_responses ? { guidedResponses: row.guided_responses } : {}),
     sources: sources.map((source) => ({
       title: source.title,
       url: source.url,

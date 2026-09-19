@@ -18,7 +18,10 @@ export const CEREBRAS_MIN_INTERVAL_MS = 13_500;
 const DEFAULT_TIMEOUT_MS = 45_000;
 const DEFAULT_RETRIES = 1;
 
-export type CerebrasOperation = "research plan" | "evidence synthesis";
+export type CerebrasOperation =
+  | "research plan"
+  | "evidence synthesis"
+  | "one health pathways";
 
 export type CerebrasRequest = {
   systemPrompt: string;

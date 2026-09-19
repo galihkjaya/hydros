@@ -11,9 +11,9 @@
 
 ## Current Status Overview
 
-- **Active Branch:** `feat/foundation-ui`
+- **Active Branch:** `feat/cerebras-migration`
 - **Target Branch:** `test`
-- **Overall Progress:** Branch 1 complete, verified (typecheck+lint+111 tests green), ready to merge
+- **Overall Progress:** Branches 1–2 complete, verified (typecheck+lint+125 tests green)
 
 ---
 
@@ -51,19 +51,19 @@
 ---
 
 ### Branch 2: `feat/cerebras-migration` — One Health, HITL & Guided Mode
-- `[ ]` Extend domain types in `types/investigation.ts` (`HealthDomain`, `ExposureRoute`, `HealthPathway`, `provenance`)
-- `[ ]` Add One Health events to `types/events.ts`
-- `[ ]` Implement Cerebras One Health bridge layer (`lib/ai/one-health.ts`) with basis validation & conditional phrasing
-- `[ ]` Split investigation orchestrator (`lib/investigation/orchestrator.ts`) into Phase A (Observation) and Phase B (Synthesis)
-- `[ ]` Add database migration `0003_hitl_and_one_health.sql` and update DB types (`types/database.ts`)
-- `[ ]` Update Supabase store (`lib/supabase/store.ts`) for observation provenance & health pathways
-- `[ ]` Create API endpoints: Phase A (`/api/investigate`), Phase B (`/api/investigate/[id]/confirm`), Poll (`/api/investigate/[id]`)
-- `[ ]` Build Human-in-the-Loop observation confirmation UI (`components/investigation/ObservationConfirmation.tsx`)
-- `[ ]` Build One Health pathways presentation panel (`components/investigation/HealthPathways.tsx`)
-- `[ ]` Create Guided Assessment checklist page (`app/investigate/guided/page.tsx`) & mapping logic (`lib/investigation/guided.ts`)
-- `[ ]` Integrate confirmation & Health Pathways into `InvestigationWorkspace.tsx`
-- `[ ]` Add unit tests (`tests/one-health.test.ts`, `tests/guided.test.ts`)
-- `[ ]` Run verification: `npm run typecheck && npm run lint && npm run test`
+- `[x]` Extend domain types in `types/investigation.ts` (`HealthDomain`, `ExposureRoute`, `HealthPathway`, `provenance`)
+- `[x]` Add One Health events to `types/events.ts`
+- `[x]` Implement Cerebras One Health bridge layer (`lib/ai/one-health.ts`) with basis validation & conditional phrasing
+- `[x]` Split investigation orchestrator (`lib/investigation/orchestrator.ts`) into Phase A (Observation) and Phase B (Synthesis)
+- `[x]` Add database migration `0003_hitl_and_one_health.sql` and update DB types (`types/database.ts`)
+- `[x]` Update Supabase store (`lib/supabase/store.ts`) for observation provenance & health pathways
+- `[x]` Create API endpoints: Phase A (`/api/investigate`), Phase B (`/api/investigate/[id]/confirm`), Poll (`/api/investigate/[id]`)
+- `[x]` Build Human-in-the-Loop observation confirmation UI (`components/investigation/ObservationConfirmation.tsx`)
+- `[x]` Build One Health pathways presentation panel (`components/investigation/HealthPathways.tsx`)
+- `[x]` Create Guided Assessment checklist page (`app/investigate/guided/page.tsx`) & mapping logic (`lib/investigation/guided.ts`)
+- `[x]` Integrate confirmation & Health Pathways into `InvestigationWorkspace.tsx`
+- `[x]` Add unit tests (`tests/one-health.test.ts`, `tests/guided.test.ts`)
+- `[x]` Run verification: `npm run typecheck && npm run lint && npm run test`
 - `[ ]` Merge `feat/cerebras-migration` into `test` branch (`--no-ff`)
 
 ---

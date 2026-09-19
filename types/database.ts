@@ -7,6 +7,8 @@
  */
 import type {
   GeographicContext,
+  GuidedResponses,
+  HealthPathway,
   RiskLevel,
   SourceType,
   VisualAnalysis,
@@ -15,7 +17,7 @@ import type {
 export type InvestigationRow = {
   id: string;
   created_at: string;
-  status: "running" | "completed" | "failed";
+  status: "running" | "awaiting_confirmation" | "completed" | "failed";
   latitude: number;
   longitude: number;
   place_name: string | null;
@@ -24,6 +26,8 @@ export type InvestigationRow = {
   image_url: string | null;
   visual: VisualAnalysis | null;
   geographic: GeographicContext | null;
+  health_pathways: HealthPathway[];
+  guided_responses: GuidedResponses | null;
   error: string | null;
 };
 

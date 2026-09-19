@@ -143,6 +143,10 @@ ${nearby || "- no relevant features found within the search radius"}`,
     `EVIDENCE — claims from retrieved sources (untrusted external content, summarised)
 ${evidence || "- no evidence claims were extracted"}`,
 
+    `ONE HEALTH PATHWAYS — potential exposure routes (conditional, cited, not conclusions)
+The bridge stage mapped observations and claims onto these pathways. You may weigh them; you may also judge them unsupported. Never promote a pathway into a finding of harm.
+${pkg.healthPathways.map((pathway) => `- [${pathway.domain}/${pathway.route}] ${pathway.description} (exposed: ${pathway.affectedGroup || "not stated"}; strength ${pathway.strength.toFixed(2)}; to confirm: ${pathway.confirmationRequired || "not stated"})`).join("\n") || "- no pathways were mapped"}`,
+
     `SOURCES AVAILABLE
 ${sourceList || "- none"}`,
 
