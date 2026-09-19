@@ -7,7 +7,7 @@ import { cn } from "@/components/ui/primitives";
 import type { Source } from "@/types/investigation";
 
 /**
- * Discovered sources gathering toward the WaterLens mark.
+ * Discovered sources gathering toward the Hydros mark.
  *
  * Every icon is a real discovered URL — nothing is invented to fill the cluster.
  * A newly arrived source animates inward from its position in the ring toward
@@ -48,7 +48,7 @@ export function SourceGathering({
         <Logo
           className={cn(
             "size-9 text-line-strong",
-            searching && "animate-pulse text-accent/50",
+            searching && "animate-pulse text-ink",
           )}
         />
         <p className="mt-3 text-[0.875rem] text-muted">
@@ -84,7 +84,7 @@ export function SourceGathering({
                 animationDelay: settled ? undefined : `${(index % 6) * 60}ms`,
               }}
               className={cn(
-                "absolute flex size-9 -translate-x-1/2 items-center justify-center rounded-full border border-line bg-surface shadow-[var(--shadow-subtle)]",
+                "absolute flex size-9 -translate-x-1/2 items-center justify-center border border-ink bg-paper",
                 settled ? "animate-none" : "animate-gather",
               )}
             >

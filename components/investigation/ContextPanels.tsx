@@ -25,7 +25,7 @@ export function VisualObservations({
       {observations.map((observation, index) => (
         <li
           key={`${observation.attribute}-${index}`}
-          className="animate-rise border-l-2 border-accent/40 pl-3"
+          className="animate-rise border-l-2 border-ink pl-3"
         >
           <div className="flex items-baseline justify-between gap-3">
             <p className="wl-label">{ATTRIBUTE_LABELS[observation.attribute]}</p>
@@ -84,7 +84,7 @@ export function GeographicContextPanel({
         {sources.map((source) => (
           <li
             key={source.id}
-            className="animate-rise flex items-start justify-between gap-3 rounded-lg border border-line bg-surface px-3 py-2.5"
+            className="animate-rise flex items-start justify-between gap-3 border border-line bg-surface px-3 py-2.5"
           >
             <span className="min-w-0">
               <span className="block truncate text-[0.875rem] font-medium">
@@ -115,7 +115,7 @@ export function GeographicContextPanel({
 
 function EmptyPanel({ children }: { children: React.ReactNode }) {
   return (
-    <p className="rounded-lg border border-dashed border-line-strong px-4 py-6 text-center text-[0.875rem] text-muted">
+    <p className="border border-dashed border-line-strong px-4 py-6 text-center text-[0.875rem] text-muted">
       {children}
     </p>
   );

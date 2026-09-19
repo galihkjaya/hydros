@@ -129,7 +129,7 @@ export async function runInvestigation(
 ): Promise<InvestigationResult> {
   if (!hasInvestigationCredentials()) {
     const message =
-      "WaterLens is not fully configured on the server. Investigations are unavailable.";
+      "Hydros is not fully configured on the server. Investigations are unavailable.";
     emit({ type: "failed", data: { stage: "input", message } });
     throw new InvestigationError("input", message);
   }

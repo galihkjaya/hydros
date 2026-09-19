@@ -25,7 +25,7 @@ export function InvestigationTimeline({
                 aria-hidden="true"
                 className={cn(
                   "w-px flex-1",
-                  stage.state === "done" ? "bg-accent/40" : "bg-line",
+                  stage.state === "done" ? "bg-ink" : "bg-line",
                 )}
               />
             ) : null}
@@ -38,7 +38,7 @@ export function InvestigationTimeline({
                 stage.state === "pending" && "text-subtle",
                 stage.state === "active" && "font-medium text-foreground",
                 stage.state === "done" && "text-foreground",
-                stage.state === "failed" && "font-medium text-risk-high",
+                stage.state === "failed" && "font-medium text-signal",
               )}
             >
               {stage.state === "active" ? stage.activeLabel : stage.label}
@@ -58,7 +58,7 @@ function StageMarker({ state }: { state: TimelineStage["state"] }) {
     return (
       <span
         aria-hidden="true"
-        className="flex size-5 shrink-0 items-center justify-center rounded-full bg-accent text-accent-foreground"
+        className="flex size-5 shrink-0 items-center justify-center bg-ink text-paper"
       >
         <svg viewBox="0 0 16 16" className="size-3" fill="none">
           <path
@@ -77,7 +77,7 @@ function StageMarker({ state }: { state: TimelineStage["state"] }) {
     return (
       <span
         aria-hidden="true"
-        className="flex size-5 shrink-0 items-center justify-center rounded-full bg-risk-high text-white"
+        className="flex size-5 shrink-0 items-center justify-center bg-signal text-white"
       >
         <svg viewBox="0 0 16 16" className="size-3" fill="none">
           <path
@@ -97,8 +97,8 @@ function StageMarker({ state }: { state: TimelineStage["state"] }) {
         aria-hidden="true"
         className="flex size-5 shrink-0 items-center justify-center"
       >
-        <span className="size-2.5 animate-pulse rounded-full bg-accent" />
-        <span className="absolute size-5 rounded-full border border-accent/40" />
+        <span className="size-2.5 animate-pulse bg-ink" />
+        <span className="absolute size-5 border border-ink-faint" />
       </span>
     );
   }
@@ -108,7 +108,7 @@ function StageMarker({ state }: { state: TimelineStage["state"] }) {
       aria-hidden="true"
       className="flex size-5 shrink-0 items-center justify-center"
     >
-      <span className="size-2 rounded-full border border-line-strong" />
+      <span className="size-2 border border-ink-faint" />
     </span>
   );
 }

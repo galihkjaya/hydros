@@ -29,11 +29,16 @@ const EMPTY_LOCATION: LocationDraft = { latitude: "", longitude: "" };
  * the workspace route, then navigates. The actual provider calls happen
  * server-side once the workspace opens the investigation stream.
  */
-export function InvestigationForm() {
+export function InvestigationForm({
+  initialLocation = EMPTY_LOCATION,
+}: {
+  initialLocation?: LocationDraft;
+}) {
   const router = useRouter();
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [location, setLocation] = useState<LocationDraft>(EMPTY_LOCATION);
+  const [location, setLocation] =
+    useState<LocationDraft>(initialLocation);
   const [note, setNote] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | undefined>(undefined);
@@ -156,7 +161,7 @@ export function InvestigationForm() {
             rows={4}
             disabled={submitting}
             placeholder="Strong smell after heavy rain. Neighbours say the colour changed last month."
-            className="mt-1.5 w-full resize-y rounded-lg border bg-surface px-3 py-2 text-[0.9375rem] placeholder:text-subtle disabled:opacity-60"
+            className="mt-1.5 w-full resize-y border border-ink bg-paper px-3 py-2 text-[0.9375rem] placeholder:text-ink-faint disabled:opacity-60"
           />
           <p className="mt-1.5 text-right wl-mono text-subtle">
             {note.length}/{MAX_NOTE_LENGTH}
@@ -192,7 +197,7 @@ export function InvestigationForm() {
           ) : null}
 
           <p className="mt-4 text-[0.8125rem] text-subtle">
-            Images are downscaled in your browser before upload. WaterLens cannot
+            Images are downscaled in your browser before upload. Hydros cannot
             measure chemistry or bacteria; results describe evidence, not test
             outcomes.
           </p>
@@ -217,8 +222,8 @@ function Requirement({
         aria-hidden="true"
         className={
           met
-            ? "flex size-5 items-center justify-center rounded-full bg-accent-muted text-accent"
-            : "flex size-5 items-center justify-center rounded-full border border-line-strong text-transparent"
+            ? "flex size-5 items-center justify-center bg-ink text-paper"
+            : "flex size-5 items-center justify-center border border-ink text-transparent"
         }
       >
         <svg viewBox="0 0 16 16" className="size-3" fill="none">

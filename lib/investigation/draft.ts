@@ -26,7 +26,7 @@ export type InvestigationDraft = {
   createdAt: string;
 };
 
-const PREFIX = "waterlens-draft:";
+const PREFIX = "hydros-draft:";
 
 export function newInvestigationId(): string {
   return crypto.randomUUID();

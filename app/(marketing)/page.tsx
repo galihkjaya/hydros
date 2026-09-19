@@ -1,15 +1,30 @@
 import Link from "next/link";
-import { Badge, Card } from "@/components/ui/primitives";
+import {
+  Callout,
+  Chip,
+  DisplayHeading,
+  Eyebrow,
+  Figure,
+  Rule,
+} from "@/components/ui/primitives";
 import { Logo } from "@/components/layout/Logo";
+import { RESEARCH_CITIES, cityInvestigateHref } from "@/lib/geo/cities";
 
 /**
  * Landing page. Server component — entirely static.
  *
- * The core job of this page is expectation-setting: WaterLens reasons about
+ * The core job of this page is expectation-setting: Hydros reasons about
  * evidence, it does not test water. The three-layer model (observation /
  * evidence / inference) is introduced here so the assessment screen reads
  * as a continuation rather than a surprise.
  */
+
+const TRACKS = [
+  { id: "Track 2", label: "Data-to-Insight" },
+  { id: "Track 3", label: "AI-Supported Assessment" },
+  { id: "Track 6", label: "Resilience Informatics" },
+  { id: "Track 7", label: "Digital Health Standards" },
+] as const;
 
 const PIPELINE = [
   {
@@ -36,136 +51,267 @@ const PIPELINE = [
 
 const LAYERS = [
   {
-    label: "Observation",
-    tone: "accent" as const,
+    eyebrow: "Observation",
     example: "“The water appears brown and cloudy.”",
-    body: "Evidence directly visible in your photograph.",
+    body: "What can actually be seen in the photograph. Never a claim about safety.",
   },
   {
-    label: "Evidence",
-    tone: "neutral" as const,
+    eyebrow: "Evidence",
     example:
       "“A government report documented pollution concerns in this watershed.”",
-    body: "Information retrieved from external sources, with links.",
+    body: "What a retrieved external source states, with its URL preserved.",
   },
   {
-    label: "Inference",
-    tone: "medium" as const,
+    eyebrow: "Inference",
     example:
       "“These findings raise concern but do not prove contamination at your exact location.”",
-    body: "A conclusion drawn from observations and evidence together.",
+    body: "What can reasonably be concluded from observations and evidence together — and only here.",
   },
 ] as const;
 
+// Demo strip cities: Coimbra leads — the coordinator is at its university.
+const DEMO_SLUGS = ["coimbra", "ghent", "oslo"] as const;
+
 export default function Home() {
+  const demoCities = DEMO_SLUGS.map(
+    (slug) => RESEARCH_CITIES.find((c) => c.slug === slug)!,
+  );
+
   return (
     <main>
-      {/* Hero */}
-      <section className="mx-auto max-w-6xl px-4 pt-16 pb-14 sm:px-6 sm:pt-24 sm:pb-20">
-        <div className="max-w-2xl">
-          <Badge tone="accent">Evidence-based water investigation</Badge>
-          <h1 className="mt-5 text-3xl font-semibold tracking-tight sm:text-[2.6rem] sm:leading-[1.15]">
-            What can we reasonably infer about this water?
-          </h1>
-          <p className="mt-5 text-base text-muted sm:text-[1.0625rem]">
-            Upload a photograph of a water source and its location. WaterLens
-            examines the visible evidence, maps the surrounding area, researches
-            public records, and returns an assessment that separates what is
-            observed from what is documented and what is only inferred.
+      {/* Masthead hero */}
+      <section className="mx-auto max-w-[1180px] px-6 pt-14 pb-10 sm:px-10 sm:pt-20">
+        <Eyebrow>Hydros · OneAquaHealth IEEE Global Hackathon 2026</Eyebrow>
+        <DisplayHeading level={1} className="mt-4 max-w-4xl">
+          Don&apos;t guess the water, <em>investigate it.</em>
+        </DisplayHeading>
+        <div className="hydros-prose mt-5">
+          <p className="text-ink-muted">
+            Hydros turns a photograph of an urban waterway and its location
+            into a structured, evidence-first investigation. It shows what is
+            observed, what public records document, and what can only be
+            inferred.
           </p>
-
-          <div className="mt-8 flex flex-wrap items-center gap-3">
-            <Link
-              href="/investigate"
-              className="inline-flex h-12 items-center justify-center rounded-lg bg-accent px-6 text-[0.9375rem] font-medium text-accent-foreground transition-opacity hover:opacity-90"
-            >
-              Start an investigation
-            </Link>
-            <Link
-              href="/map"
-              className="inline-flex h-12 items-center justify-center rounded-lg border border-line-strong px-6 text-[0.9375rem] font-medium transition-colors hover:bg-surface-muted"
-            >
-              View the map
-            </Link>
-          </div>
-
-          <p className="mt-6 max-w-xl text-[0.8125rem] text-subtle">
-            A photograph cannot measure chemistry or bacteria. WaterLens will say
-            so — <span className="font-medium">insufficient data</span> is a
-            valid result.
+          <p className="mt-2 text-ink-muted">
+            It does not test water. It cannot measure bacteria, chemicals, or
+            potability — and it says so plainly.
           </p>
         </div>
-      </section>
 
-      {/* The three layers */}
-      <section className="border-y border-line bg-surface-muted/60">
-        <div className="mx-auto max-w-6xl px-4 py-14 sm:px-6 sm:py-16">
-          <h2 className="text-xl font-semibold">Three layers, never merged</h2>
-          <p className="mt-2 max-w-2xl text-muted">
-            Most tools collapse guesswork into a single verdict. WaterLens keeps
-            the layers apart so you can judge the reasoning yourself.
-          </p>
+        <div className="mt-8 flex flex-wrap items-center gap-3">
+          <Link
+            href="/investigate"
+            className="inline-flex h-12 items-center justify-center bg-ink px-6 text-[0.9375rem] font-medium text-paper transition-opacity hover:opacity-85"
+          >
+            Start an investigation
+          </Link>
+          <Link
+            href="#demo"
+            className="inline-flex h-12 items-center justify-center border border-ink px-6 text-[0.9375rem] font-medium transition-colors hover:bg-paper-sunk"
+          >
+            See a worked example
+          </Link>
+        </div>
 
-          <ul className="mt-8 grid gap-4 sm:grid-cols-3">
-            {LAYERS.map((layer) => (
-              <li key={layer.label}>
-                <Card className="flex h-full flex-col p-5">
-                  <Badge tone={layer.tone}>{layer.label}</Badge>
-                  <p className="mt-4 text-[0.9375rem] text-foreground">
-                    {layer.example}
-                  </p>
-                  <p className="mt-auto pt-4 text-[0.8125rem] text-muted">
-                    {layer.body}
-                  </p>
-                </Card>
+        <div className="mt-10 border-t border-rule pt-4">
+          <ul className="flex flex-wrap gap-2" aria-label="Hackathon tracks">
+            {TRACKS.map((track) => (
+              <li key={track.id}>
+                <Chip tone="mono">
+                  {track.id} · {track.label}
+                </Chip>
               </li>
             ))}
           </ul>
         </div>
       </section>
 
-      {/* Pipeline */}
-      <section className="mx-auto max-w-6xl px-4 py-14 sm:px-6 sm:py-20">
-        <h2 className="text-xl font-semibold">How an investigation runs</h2>
-        <p className="mt-2 max-w-2xl text-muted">
-          Four stages, streamed to your screen as they happen. No fake progress
-          bars.
+      <div className="mx-auto max-w-[1180px] px-6 sm:px-10">
+        <Rule strong />
+      </div>
+
+      {/* The three layers */}
+      <section className="mx-auto max-w-[1180px] px-6 py-12 sm:px-10 sm:py-16">
+        <Eyebrow>The method</Eyebrow>
+        <DisplayHeading level={2} className="mt-2 max-w-2xl">
+          Three layers, <em>never merged</em>
+        </DisplayHeading>
+        <p className="hydros-prose mt-3 text-ink-muted">
+          Most tools collapse guesswork into a single verdict. Hydros keeps
+          the layers apart so you can judge the reasoning yourself.
         </p>
 
-        <ol className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mt-8 grid sm:grid-cols-3">
+          {LAYERS.map((layer, index) => (
+            <div
+              key={layer.eyebrow}
+              className={
+                index === 0
+                  ? "border-t border-rule pt-5 sm:border-t-0 sm:border-l sm:border-rule sm:pt-0 sm:pl-6 sm:first:border-l-0 sm:first:pl-0"
+                  : "mt-6 border-t border-rule pt-5 sm:mt-0 sm:border-t-0 sm:border-l sm:border-rule sm:pt-0 sm:pl-6"
+              }
+            >
+              <Eyebrow>{layer.eyebrow}</Eyebrow>
+              <p className="mt-3 font-serif text-lg leading-snug italic">
+                {layer.example}
+              </p>
+              <p className="mt-3 text-[0.875rem] text-ink-muted">{layer.body}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <div className="mx-auto max-w-[1180px] px-6 sm:px-10">
+        <Rule strong />
+      </div>
+
+      {/* Live demo strip */}
+      <section
+        id="demo"
+        className="mx-auto max-w-[1180px] scroll-mt-20 px-6 py-12 sm:px-10 sm:py-16"
+      >
+        <Eyebrow>Worked examples</Eyebrow>
+        <DisplayHeading level={2} className="mt-2 max-w-2xl">
+          Start where the <em>research cities</em> are
+        </DisplayHeading>
+        <p className="hydros-prose mt-3 text-ink-muted">
+          One click opens an investigation prefilled with the city&apos;s
+          waterway coordinates. Completed, seeded investigations appear here
+          once the demo data lands.
+        </p>
+
+        <ul className="mt-8 grid gap-8 sm:grid-cols-3">
+          {demoCities.map((city) => (
+            <li key={city.slug}>
+              <Link
+                href={cityInvestigateHref(city.slug)}
+                className="group block border-t-2 border-ink pt-4 transition-colors hover:bg-paper-sunk"
+              >
+                <Figure
+                  caption={`${city.waterway} — ${city.country}`}
+                >
+                  <div className="flex aspect-[4/3] flex-col justify-between bg-paper-sunk p-5">
+                    <p className="font-mono text-[0.6875rem] tracking-widest text-ink-muted uppercase">
+                      {city.name}
+                    </p>
+                    <p className="font-serif text-3xl leading-none">
+                      {city.waterway}
+                    </p>
+                    <p className="font-mono text-[0.8125rem] text-ink-muted">
+                      {city.latitude.toFixed(4)},{" "}
+                      {city.longitude.toFixed(4)}
+                    </p>
+                  </div>
+                </Figure>
+                <p className="mt-3 text-[0.875rem] text-ink-muted">
+                  {city.note}
+                </p>
+                <p className="mt-2 font-mono text-[0.8125rem] tracking-wider uppercase underline underline-offset-4 group-hover:text-ink">
+                  Investigate this waterway →
+                </p>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <div className="mx-auto max-w-[1180px] px-6 sm:px-10">
+        <Rule strong />
+      </div>
+
+      {/* Pipeline */}
+      <section className="mx-auto max-w-[1180px] px-6 py-12 sm:px-10 sm:py-16">
+        <Eyebrow>The pipeline</Eyebrow>
+        <DisplayHeading level={2} className="mt-2 max-w-2xl">
+          Four stages, <em>streamed live</em>
+        </DisplayHeading>
+        <p className="hydros-prose mt-3 text-ink-muted">
+          No fake progress bars — each stage appears as the server runs it.
+        </p>
+
+        <ol className="mt-8">
           {PIPELINE.map((stage) => (
-            <li key={stage.step}>
-              <Card className="h-full p-5">
-                <span className="wl-mono text-subtle">{stage.step}</span>
-                <h3 className="mt-2 font-semibold">{stage.title}</h3>
-                <p className="mt-2 text-[0.875rem] text-muted">{stage.body}</p>
-              </Card>
+            <li
+              key={stage.step}
+              className="grid gap-1 border-t border-rule py-5 sm:grid-cols-[80px_220px_1fr] sm:gap-6"
+            >
+              <span className="font-mono text-[0.8125rem] text-ink-faint">
+                {stage.step}
+              </span>
+              <h3 className="font-serif text-xl">{stage.title}</h3>
+              <p className="text-[0.875rem] text-ink-muted">{stage.body}</p>
             </li>
           ))}
         </ol>
       </section>
 
-      {/* Closing CTA */}
-      <section className="border-t border-line">
-        <div className="mx-auto flex max-w-6xl flex-col items-start gap-6 px-4 py-14 sm:flex-row sm:items-center sm:justify-between sm:px-6">
-          <div className="flex items-start gap-4">
-            <Logo className="mt-0.5 size-8 shrink-0 text-accent" />
+      <div className="mx-auto max-w-[1180px] px-6 sm:px-10">
+        <Rule strong />
+      </div>
+
+      {/* One Health */}
+      <section className="mx-auto max-w-[1180px] px-6 py-12 sm:px-10 sm:py-16">
+        <Eyebrow>One Health</Eyebrow>
+        <DisplayHeading level={2} className="mt-2 max-w-2xl">
+          Water connects <em>every health</em>
+        </DisplayHeading>
+        <div className="hydros-prose mt-3 space-y-3 text-ink-muted">
+          <p>
+            The One Health model holds that ecosystem health, animal health,
+            and human health are one linked chain. A degraded urban waterway
+            is never only an environmental story: it is habitat loss, wildlife
+            exposure, and — through recreation, irrigation, livestock watering,
+            or the food chain — a human story too.
+          </p>
+          <p>
+            Hydros surfaces that chain explicitly. Each investigation maps its
+            evidence onto human, animal, and ecosystem exposure pathways,
+            stated conditionally and cited to their sources — so a city, a
+            researcher, or a neighbour can see <em>how</em> a waterway touches
+            health, not just <em>that</em> it might.
+          </p>
+        </div>
+      </section>
+
+      <div className="mx-auto max-w-[1180px] px-6 sm:px-10">
+        <Rule strong />
+      </div>
+
+      {/* Honest limitations + closing CTA */}
+      <section className="mx-auto max-w-[1180px] px-6 py-12 sm:px-10 sm:py-16">
+        <Callout eyebrow="Honest limitations">
+          <p className="font-serif text-xl leading-snug">
+            Hydros is <em>not a laboratory.</em>
+          </p>
+          <p className="hydros-prose mt-2 text-[0.9375rem] text-ink-muted">
+            It cannot measure bacteria, chemicals, heavy metals, or
+            potability. When the evidence does not support a stronger
+            conclusion, the correct result is{" "}
+            <span className="font-mono text-ink">INSUFFICIENT_DATA</span> —
+            a first-class outcome, not a failure. Absence of evidence is never
+            presented as evidence of safety.
+          </p>
+        </Callout>
+
+        <div className="mt-12 flex items-start gap-4 border-t border-rule pt-8">
+          <Logo className="mt-1 size-8 shrink-0" />
+          <div className="flex flex-1 flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h2 className="text-lg font-semibold">
-                Every claim keeps its source
+              <h2 className="font-serif text-2xl">
+                Every claim keeps <em>its source</em>
               </h2>
-              <p className="mt-1 max-w-lg text-muted">
+              <p className="hydros-prose mt-1 text-ink-muted">
                 Assessments link back to the pages they came from, so you can
                 verify the evidence rather than trust the model.
               </p>
             </div>
+            <Link
+              href="/investigate"
+              className="inline-flex h-11 shrink-0 items-center justify-center bg-ink px-5 text-sm font-medium text-paper transition-opacity hover:opacity-85"
+            >
+              Investigate a water source
+            </Link>
           </div>
-          <Link
-            href="/investigate"
-            className="inline-flex h-11 shrink-0 items-center justify-center rounded-lg bg-accent px-5 text-sm font-medium text-accent-foreground transition-opacity hover:opacity-90"
-          >
-            Investigate a water source
-          </Link>
         </div>
       </section>
     </main>

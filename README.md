@@ -1,27 +1,27 @@
 <p align="center">
-  <img src="public/src/banner.svg" alt="WaterLens" width="900">
+  <img src="public/src/banner.svg" alt="Hydros" width="900">
 </p>
 
 <p align="center">
   <strong>See water. Find context. Follow the evidence.</strong>
   <br>
-  AI-powered environmental investigation from a photograph and a location.
+  An evidence-first investigation tool for urban freshwater ecosystems, built on the One Health model.
 </p>
 
 <p align="center">
-  <a href="https://waterlens.vercel.app">Live Demo</a>
-  ·
-  <a href="https://devpost.com/software/waterlens">Devpost</a>
+  <code>Track 2 · Data-to-Insight</code>
+  <code>Track 3 · AI-Supported Assessment</code>
+  <code>Track 6 · Resilience Informatics</code>
+  <code>Track 7 · Digital Health Standards</code>
 </p>
 
-## See it
+## What Hydros is
 
-WaterLens turns a photograph of a water source and its location into a structured
-environmental investigation. It brings visual observations, geographic context,
-public web sources, and a cautious assessment into one workflow.
-
-There are no application screenshots checked into the repository yet, so the
-workflow below is the clearest product preview for now:
+Hydros turns a photograph of an urban waterway (or a guided visual checklist)
+plus its location into a structured water investigation. It brings visual
+observations, geographic context, public web sources, One Health exposure
+pathways, and a cautious assessment into one workflow — built for the IEEE
+OneAquaHealth Global Hackathon 2026.
 
 ```text
 Photo + Location
@@ -30,40 +30,22 @@ Visual Analysis
        ↓
 Geographic Context
        ↓
-Research Plan
+Confirm observations (you check the AI's work)
        ↓
-Web Search
+Research Plan → Web Search → Evidence Synthesis
        ↓
-Evidence Synthesis
+One Health pathways
        ↓
 Assessment
 ```
 
-The result is not a black-box verdict. WaterLens keeps the path from what was
-seen to what was found to what can reasonably be inferred visible throughout the
-investigation.
-
-## The investigation experience
-
-WaterLens exposes the work as it happens. The workspace streams real backend
-stages such as:
-
-```text
-Identifying visual characteristics…
-Checking the surrounding area…
-Planning what to investigate…
-Searching the web…
-Analysing evidence…
-Preparing assessment…
-```
-
-The progress timeline reflects actual investigation events rather than an
-arbitrary loading animation. Sources appear as they are found, and the final
-assessment includes the evidence and limitations behind it.
+The result is not a black-box verdict. Hydros keeps the path from what was
+seen to what was found to what can reasonably be inferred visible throughout.
 
 ## Observation → Evidence → Inference
 
-WaterLens deliberately keeps three kinds of information separate:
+Hydros deliberately keeps three kinds of information separate, enforced in the
+type system (`types/investigation.ts`), not just in copy:
 
 | Layer | What it means | Example |
 | --- | --- | --- |
@@ -71,108 +53,83 @@ WaterLens deliberately keeps three kinds of information separate:
 | **Evidence** | What a retrieved external source states, with its URL preserved. | “A public report documented elevated turbidity in the surrounding basin.” |
 | **Inference** | What can reasonably be concluded from the observations and evidence together. | “The findings raise concern, but do not establish contamination at this exact location.” |
 
-An observation is not automatically a contamination claim. WaterLens makes the
-distinction explicit so a visible appearance, a public record, and a conclusion
-cannot quietly become the same thing.
+An observation is not automatically a contamination claim. Between evidence
+and inference sits a bridge layer — `HealthPathway` (`lib/ai/one-health.ts`) —
+that links observations to *potential* exposure pathways, always conditional,
+always cited. Only `RiskAssessment` may conclude, and `INSUFFICIENT_DATA` is a
+first-class outcome.
 
-## Geographic context
+## One Health framing
 
-The location is the bridge between a photograph and the place around it.
-WaterLens combines:
+Ecosystem health, animal health, and human health are one linked chain, and
+urban water runs through all three. Hydros maps each investigation's evidence
+onto exposure pathways grouped by domain:
 
-- OpenStreetMap data
-- Overpass queries for nearby mapped features and waterways
-- Nominatim reverse geocoding for place context
+- **Ecosystem** — habitat degradation, algal pressure, flow alteration.
+- **Animal** — wildlife exposure via drinking, bathing, or food chain.
+- **Human** — ingestion, dermal, recreational, irrigation, or livestock-watering
+  contact, stated conditionally and only with a cited basis.
 
-This can surface waterways, nearby industry, agriculture, landfills, treatment
-facilities, and other relevant mapped infrastructure. The interface may also
-show a feature as **potentially upstream** when its position along a mapped
-waterway supports that description.
+Every pathway carries its `basis` (source URLs or observation attributes),
+a `strength`, and a `confirmationRequired` field naming what would need to be
+measured to confirm it. Pathways never assert harm — they state that a route
+exists.
 
-That upstream relationship is an approximation based on OSM vertex ordering and
-geometric projection. It is useful context, not a complete hydrological model
-and never proof of causation.
+## Track alignment
 
-## Web research
+| Track | What Hydros delivers | Where |
+| --- | --- | --- |
+| 2 · Data-to-Insight | Photo/location → visual analysis → OSM context → web research → assessment | `lib/investigation/orchestrator.ts`, `lib/ai/*`, `lib/geo/*` |
+| 2 · Data-to-Insight | Site grouping (geohash ~150 m), risk timelines, observation drift | `lib/geo/site.ts`, `lib/investigation/trends.ts`, `app/site/[geohash]/page.tsx` |
+| 3 · AI-Supported Assessment | Human-in-the-loop observation confirmation with visible provenance | `components/investigation/ObservationConfirmation.tsx`, `app/api/investigate/[id]/confirm/route.ts` |
+| 3 · AI-Supported Assessment | Guided stream-assessment entry producing structured observations | `app/investigate/guided/page.tsx`, `lib/investigation/guided.ts` |
+| 3 · AI-Supported Assessment | One Health exposure pathways in conditional, cited language | `lib/ai/one-health.ts`, `components/investigation/HealthPathways.tsx` |
+| 6 · Resilience Informatics | Real greyscale investigation map with clustering and risk filters | `components/map/WaterMap.tsx`, `app/map/page.tsx` |
+| 6 · Resilience Informatics | Deterministic, auditable degradation alerts (threshold rules, not prediction) | `lib/investigation/alerts.ts`, `app/alerts/page.tsx` |
+| 6 · Resilience Informatics | Five OneAquaHealth research-city hubs with seeded demos | `lib/geo/cities.ts`, `app/cities`, `scripts/seed-demo.mjs` |
+| 7 · Digital Health Standards | FHIR R4 bundle export incl. Provenance | `lib/fhir/*`, `app/api/investigate/[id]/fhir/route.ts` |
+| 7 · Digital Health Standards | JSON-LD / DCAT FAIR endpoints | `app/api/investigate/[id]/jsonld/route.ts`, `app/api/investigations.jsonld/route.ts` |
 
-WaterLens does not simply ask a model what happened. It first uses the location
-and visible observations to plan focused research, then searches publicly
-available information and preserves the sources that came back.
+Local codes live under `http://hydros.local/CodeSystem/` (see
+`lib/fhir/code-system.ts`). Where no standard code genuinely applies, Hydros
+uses text and says so — it does not invent LOINC codes.
 
-```text
-Location + Observation + Research
-                  ↓
-          Relevant evidence
-```
+FAIR, concretely: **Findable** via stable investigation IDs and the
+`/api/investigations.jsonld` DataCatalog; **Accessible** over HTTPS GET with
+no auth for public investigations; **Interoperable** through FHIR R4
+(`application/fhir+json`) and schema.org JSON-LD; **Reusable** via explicit
+license fields and full provenance chains in every export.
 
-Search results are classified and kept traceable to their URLs. The research
-model organizes source claims and uncertainty; the final reasoning stage draws
-the application-level assessment from the complete evidence package.
-
-## Responsible uncertainty
-
-WaterLens is not a laboratory. A photograph cannot directly measure:
-
-- bacteria
-- chemicals
-- heavy metals
-- contamination levels
-- potability
-
-So WaterLens must never imply that a visual inspection proves water is safe or
-unsafe to drink. When the available evidence does not support a stronger
-conclusion, the correct result is:
+## Architecture
 
 ```text
-INSUFFICIENT_DATA
+NVIDIA Vision (observations, descriptive only)
+      ↓
+OSM / Overpass / Nominatim (geographic context)
+      ↓
+Human confirmation (provenance: model → user_confirmed/corrected/added)
+      ↓
+Cerebras — Research Planning → Web Search → Evidence Synthesis
+      ↓
+Cerebras — One Health bridge (conditional pathways, cited basis)
+      ↓
+Groq — Final Reasoning (the ONLY inference step)
+      ↓
+Assessment + FHIR / JSON-LD exports + sites / trends / alerts
 ```
 
-Sometimes the most responsible answer is that we do not know. That is a core
-product feature, not a failure state.
+Untrusted text (user notes, search snippets, page titles, OSM tags) is passed
+to models as delimited *data*, never instructions. Every external service can
+fail without killing the investigation, and persistence stays optional — the
+app runs end-to-end with Supabase unconfigured.
 
-## Why WaterLens
+## Tech stack
 
-Environmental context is often scattered across maps, public reports, news,
-environmental records, and other web sources. Someone investigating an unusual
-change near their home may have to connect all of those pieces manually.
+Next.js 16 + TypeScript · Tailwind CSS v4 · NVIDIA NIM (vision) · Cerebras
+(research, evidence, One Health) · Groq (final reasoning) · SearchAPI.io ·
+Supabase (optional persistence) · MapLibre GL JS (greyscale investigation map).
 
-WaterLens brings the first layer of that investigation into one place. It does
-not replace laboratory testing or professional environmental assessment; it
-makes local environmental information easier to investigate.
-
-## Earth Forward
-
-WaterLens was built for the **NextStep Hacks 2026 Earth Forward** theme.
-
-The project focuses on water, environmental awareness, and public information
-that is tied to real places. Its goal is simple: make environmental context
-easier to investigate where it actually happens, while staying honest about
-what an image, a map, and public records cannot establish on their own.
-
-## How it works
-
-```text
-NVIDIA Vision
-      ↓
-Cerebras — Research Planning
-      ↓
-Web Search
-      ↓
-Cerebras — Evidence Synthesis
-      ↓
-Groq — Final Reasoning
-      ↓
-Assessment
-```
-
-Geographic context from OpenStreetMap, Overpass, and Nominatim runs alongside
-the visual stage and informs the research plan. The application is built with
-Next.js and TypeScript, uses NVIDIA NIM for image observations, Cerebras for
-research and evidence synthesis, Groq for final reasoning, SearchAPI.io for web
-search, and optional Supabase persistence. It is designed for deployment on
-Vercel.
-
-## Quick start
+## Local setup
 
 ```bash
 npm install
@@ -192,7 +149,7 @@ provider keys must never be committed.
 NVIDIA_API_KEY=
 NVIDIA_VISION_MODEL=nvidia/nemotron-3-nano-omni-30b-a3b-reasoning
 
-# AI — Research
+# AI — Research + One Health
 CEREBRAS_API_KEY=
 CEREBRAS_MODEL=gpt-oss-120b
 
@@ -201,38 +158,63 @@ GROQ_API_KEY=
 GROQ_MODEL=openai/gpt-oss-120b
 
 # Web Search
-
 SEARCH_API_KEY=
 
-
-# SUPABASE
-
+# Supabase (optional persistence)
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
 ```
 
-Only `NEXT_PUBLIC_*` values are reachable from the browser. Provider calls and
-server credentials stay inside the Next.js route handler.
+Only `NEXT_PUBLIC_*` values are reachable from the browser. Verify with
+`npm run check-env`.
 
-## Limitations
+## Database migrations
 
-- WaterLens is not a laboratory and cannot measure water chemistry or microbiology.
-- Nearby evidence does not necessarily prove causation at the observation point.
+Apply in order with the Supabase CLI (`supabase db push`) or the SQL editor:
+
+1. `supabase/migrations/0001_initial_schema.sql` — investigations, sources,
+   evidence, assessments, RLS, the original image bucket.
+2. `supabase/migrations/0002_rebrand_hydros.sql` — adds the `hydros-images`
+   bucket (the old one stays readable).
+3. `supabase/migrations/0003_hitl_and_one_health.sql` — `awaiting_confirmation`
+   status, observation provenance, `health_pathways`, `guided_responses`.
+4. `supabase/migrations/0004_sites_and_trends.sql` — `sites` table and
+   `site_geohash` references.
+
+## Testing
+
+```bash
+npm run typecheck && npm run lint && npm run test
+npm run build
+```
+
+Tests cover the three-layer guarantees, One Health basis validation, prompt
+injection fixtures, FHIR bundle structure, evidence integrity, FAIR output,
+geohashing (incl. antimeridian/polar edges), trends, and alerts.
+
+## What Hydros deliberately does not do
+
+- Hydros is not a laboratory and cannot measure water chemistry or microbiology.
+- Hydros never asserts that water is safe. Absence of evidence is
+  `INSUFFICIENT_DATA`, never a clean bill of health.
+- Nearby evidence does not prove causation at the observation point.
 - Public information may be incomplete, outdated, or unavailable.
 - AI-generated analysis can be wrong and should be checked against primary sources.
-- Geographic upstream analysis is an approximation, not a hydrological network model.
-- WaterLens supports investigation; it does not replace professional environmental assessment.
+- Upstream analysis is an approximation, not a hydrological network model.
+- Degradation alerts are threshold rules over observed data, not predictive modelling.
+- Hydros supports investigation; it does not replace professional environmental assessment.
 
 ## Attribution
 
 Geographic data © [OpenStreetMap contributors](https://www.openstreetmap.org/copyright),
-via Overpass and Nominatim.
+via Overpass and Nominatim. Built for the OneAquaHealth project · IEEE ·
+Co-funded by the European Union.
 
 <p align="center">
-  <img src="public/src/logo.svg" alt="WaterLens logo" width="72">
+  <img src="public/src/logo.svg" alt="Hydros logo" width="72">
   <br>
-  <strong>WaterLens</strong>
+  <strong>Hydros</strong>
   <br>
   <sub>See water. Find context. Follow the evidence.</sub>
 </p>

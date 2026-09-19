@@ -97,10 +97,10 @@ export function ImageUploader({
           accept(event.dataTransfer.files?.[0]);
         }}
         className={cn(
-          "flex cursor-pointer flex-col items-center justify-center gap-3 rounded-[var(--radius-card)] border border-dashed px-6 py-12 text-center transition-colors",
+          "flex cursor-pointer flex-col items-center justify-center gap-3 border border-dashed px-6 py-12 text-center transition-colors",
           dragging
-            ? "border-accent bg-accent-muted"
-            : "border-line-strong bg-surface-muted/50 hover:bg-surface-muted",
+            ? "border-ink bg-paper-sunk"
+            : "border-ink-faint bg-paper-sunk/50 hover:bg-paper-sunk",
           disabled && "pointer-events-none opacity-60",
         )}
       >
@@ -140,7 +140,7 @@ export function FieldError({
   children: React.ReactNode;
 }) {
   return (
-    <p id={id} role="alert" className="text-[0.8125rem] text-risk-high">
+    <p id={id} role="alert" className="text-[0.8125rem] text-signal">
       {children}
     </p>
   );

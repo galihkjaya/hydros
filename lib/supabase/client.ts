@@ -179,7 +179,7 @@ export async function selectRows<T>(
 // Storage
 // ---------------------------------------------------------------------------
 
-const IMAGE_BUCKET = "investigation-images";
+const IMAGE_BUCKET = "hydros-images";
 
 /**
  * Uploads an investigation image and returns its public URL.

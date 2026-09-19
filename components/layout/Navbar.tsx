@@ -20,12 +20,12 @@ export function Navbar() {
   const pathname = usePathname();
 
   return (
-    <header className="sticky top-0 z-40 border-b border-line bg-background/85 backdrop-blur-sm">
-      <div className="mx-auto flex h-14 max-w-6xl items-center gap-3 px-4 sm:px-6">
+    <header className="sticky top-0 z-40 border-b-2 border-ink bg-paper">
+      <div className="mx-auto flex h-14 max-w-[1180px] items-center gap-3 px-6 sm:px-10">
         <Link
           href="/"
-          className="rounded-md text-foreground transition-opacity hover:opacity-80"
-          aria-label="WaterLens home"
+          className="text-ink transition-opacity hover:opacity-80"
+          aria-label="Hydros home"
         >
           <LogoWordmark />
         </Link>
@@ -40,17 +40,17 @@ export function Navbar() {
                 href={link.href}
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "rounded-lg px-3 py-1.5 text-sm transition-colors",
+                  "px-3 py-1.5 font-mono text-[0.8125rem] tracking-wider uppercase transition-colors",
                   active
-                    ? "bg-surface-muted font-medium text-foreground"
-                    : "text-muted hover:bg-surface-muted hover:text-foreground",
+                    ? "bg-ink font-medium text-paper"
+                    : "text-ink-muted hover:bg-paper-sunk hover:text-ink",
                 )}
               >
                 {link.label}
               </Link>
             );
           })}
-          <span className="mx-1 h-5 w-px bg-line" aria-hidden="true" />
+          <span className="mx-1 h-5 w-px bg-rule" aria-hidden="true" />
           <ThemeToggle />
         </nav>
       </div>

@@ -1,7 +1,7 @@
 /**
  * Prompts for the visual analysis stage.
  *
- * The single most important constraint in WaterLens: this stage may describe
+ * The single most important constraint in Hydros: this stage may describe
  * only what is visible. A photograph cannot show chemistry, pathogens or
  * potability, so the model is forbidden from asserting them. Downstream stages
  * are allowed to reason; this one is not.

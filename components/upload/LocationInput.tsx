@@ -169,7 +169,7 @@ function Field({
         aria-invalid={invalid || undefined}
         onChange={(event) => onChange(event.target.value)}
         onPaste={onPaste}
-        className="wl-mono mt-1.5 h-10 w-full rounded-lg border bg-surface px-3 text-foreground placeholder:text-subtle disabled:opacity-60 aria-invalid:border-risk-high"
+        className="wl-mono mt-1.5 h-10 w-full border border-ink bg-paper px-3 text-foreground placeholder:text-subtle disabled:opacity-60 aria-invalid:border-signal"
       />
     </div>
   );

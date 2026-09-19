@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/primitives";
 
 type Theme = "light" | "dark";
 
-export const THEME_STORAGE_KEY = "waterlens-theme";
+export const THEME_STORAGE_KEY = "hydros-theme";
 
 /**
  * Inline script that applies the stored theme before first paint.

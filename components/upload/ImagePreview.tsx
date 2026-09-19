@@ -22,7 +22,7 @@ export function ImagePreview({
   disabled?: boolean;
 }) {
   return (
-    <figure className="overflow-hidden rounded-[var(--radius-card)] border border-line bg-surface">
+    <figure className="overflow-hidden border border-ink bg-paper">
       <div className="relative aspect-[4/3] w-full bg-surface-muted">
         <Image
           src={previewUrl}

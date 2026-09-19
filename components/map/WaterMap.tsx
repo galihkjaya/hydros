@@ -48,13 +48,14 @@ export function WaterMap({
 
   return (
     <div className={className}>
-      <div className="overflow-hidden rounded-[var(--radius-card)] border border-line bg-surface-muted">
+      <div className="overflow-hidden border border-ink bg-paper-sunk">
         {showEmbed ? (
           <iframe
             title={`Map of the water source at ${formatCoordinate(latitude)}, ${formatCoordinate(longitude)}`}
             src={embedSrc}
             loading="lazy"
-            className="block h-64 w-full border-0 sm:h-80"
+            // Desaturated toward the printed-map look of the newspaper system.
+            className="block h-64 w-full border-0 grayscale contrast-[1.05] sm:h-80"
           />
         ) : (
           <button
