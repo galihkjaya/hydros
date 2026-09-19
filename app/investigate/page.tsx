@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { InvestigationForm } from "@/components/investigation/InvestigationForm";
 import { Eyebrow, DisplayHeading, Rule } from "@/components/ui/primitives";
 import { validateLatitude, validateLongitude } from "@/lib/utils/validation";
@@ -31,7 +32,13 @@ export default async function InvestigatePage({
         </DisplayHeading>
         <p className="mt-3 text-ink-muted">
           Provide a photograph and the location. Observations are optional but
-          they sharpen the research.
+          they sharpen the research. Prefer a checklist?{" "}
+          <Link
+            href="/investigate/guided"
+            className="underline underline-offset-4 hover:text-ink"
+          >
+            Take the guided stream assessment instead — no photo needed.
+          </Link>
         </p>
       </header>
 
