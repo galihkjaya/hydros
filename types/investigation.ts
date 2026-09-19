@@ -18,11 +18,13 @@ export type Location = {
 };
 
 export type InvestigationInput = {
-  /** Data URL or https URL for the image. Never a raw file path. */
-  imageDataUrl: string;
+  /** Data URL or https URL for the image. Absent in guided mode without a photo. */
+  imageDataUrl?: string;
   location: Location;
   /** Optional user observation or question. Untrusted text. */
   note: string;
+  /** Guided checklist answers, when the run started in guided mode. */
+  guidedResponses?: GuidedResponses;
 };
 
 // ---------------------------------------------------------------------------
@@ -48,7 +50,19 @@ export type VisualObservation = {
   description: string;
   /** How clearly this is visible in the image, 0–1. */
   confidence: number;
+  /**
+   * Who stands behind this observation. `model` until a person reviews it;
+   * the confirmation step upgrades it. Visible in the final report.
+   */
+  provenance: ObservationProvenance;
 };
+
+/** Human-in-the-loop provenance for a visual observation. */
+export type ObservationProvenance =
+  | "model"
+  | "user_confirmed"
+  | "user_corrected"
+  | "user_added";
 
 export type VisualAnalysis = {
   observations: VisualObservation[];
@@ -176,10 +190,86 @@ export type EvidencePackage = {
   geographic: GeographicContext;
   sources: Source[];
   evidence: Evidence[];
+  /** One Health exposure pathways. A bridge, not an inference. */
+  healthPathways: HealthPathway[];
   /** Research questions that returned nothing useful. */
   unansweredQuestions: string[];
   /** Package-level caveats, e.g. no local monitoring data found. */
   limitations: string[];
+};
+
+// ---------------------------------------------------------------------------
+// Layer 2.5 — ONE HEALTH BRIDGE: observation/evidence → potential pathway
+// ---------------------------------------------------------------------------
+
+/** Which One Health domain a pathway affects. */
+export type HealthDomain = "human" | "animal" | "ecosystem";
+
+/** How exposure could plausibly occur. Descriptive, never predictive. */
+export type ExposureRoute =
+  | "ingestion"
+  | "dermal"
+  | "inhalation"
+  | "recreational"
+  | "food_chain"
+  | "irrigation"
+  | "livestock_watering"
+  | "habitat";
+
+/**
+ * Layer 2.5 — a bridge, not an inference.
+ *
+ * Links an observation or evidence claim to a potential health pathway.
+ * Must cite at least one Evidence.sourceUrl or one VisualObservation.
+ * May NEVER assert that harm has occurred, only that a pathway exists.
+ */
+export type HealthPathway = {
+  domain: HealthDomain;
+  route: ExposureRoute;
+  /** The pathway, stated conditionally. */
+  description: string;
+  /** Who or what would be exposed. */
+  affectedGroup: string;
+  /** Source URLs or `observation:<attribute>` refs this rests on. Never empty. */
+  basis: string[];
+  /** How strongly the basis supports the pathway, 0–1. */
+  strength: number;
+  /** What would need to be measured to confirm it. */
+  confirmationRequired: string;
+};
+
+// ---------------------------------------------------------------------------
+// Guided stream assessment — structured observations without a photograph
+// ---------------------------------------------------------------------------
+
+/** Raw answers from the guided checklist. Stored whole as JSONB. */
+export type GuidedResponses = {
+  waterColour: string;
+  waterColourOther?: string;
+  clarity: string;
+  surface: string;
+  odour: string;
+  odourOther?: string;
+  algae: string;
+  flow: string;
+  bankVegetation: string;
+  litter: string;
+  wildlife: string;
+  humanActivity: string;
+};
+
+// ---------------------------------------------------------------------------
+// Human-in-the-loop confirmation — the edited observation set
+// ---------------------------------------------------------------------------
+
+/** What the confirmation step sends back: the human-reviewed observations. */
+export type ConfirmationInput = {
+  observations: VisualObservation[];
+  /** Corrected place name; the resolved one stands when absent. */
+  displayName?: string;
+  countryCode?: string;
+  /** "This is not a water body" — skips research for an honest no-result. */
+  notWaterBody?: boolean;
 };
 
 // ---------------------------------------------------------------------------
@@ -204,6 +294,7 @@ export type RiskAssessment = {
 
 export type InvestigationStatus =
   | "running"
+  | "awaiting_confirmation"
   | "completed"
   | "failed";
 
@@ -219,6 +310,9 @@ export type Investigation = {
   geographic?: GeographicContext;
   sources: Source[];
   evidence: Evidence[];
+  healthPathways: HealthPathway[];
+  /** Raw guided-checklist answers, when the run started in guided mode. */
+  guidedResponses?: GuidedResponses;
   assessment?: RiskAssessment;
   /** User-safe failure message. Never a stack trace or provider payload. */
   error?: string;

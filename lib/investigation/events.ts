@@ -17,7 +17,11 @@ import {
 } from "@/types/events";
 
 /** Events that mean the stream is over, either way. */
-const TERMINAL_TYPES = new Set<InvestigationEventType>(["completed", "failed"]);
+const TERMINAL_TYPES = new Set<InvestigationEventType>([
+  "awaiting_confirmation",
+  "completed",
+  "failed",
+]);
 
 export function isTerminalEvent(event: InvestigationEvent): boolean {
   return TERMINAL_TYPES.has(event.type);
@@ -44,6 +48,8 @@ const EVENT_STAGE: Partial<Record<InvestigationEventType, InvestigationStage>> =
   evidence_analysis_started: "evidence",
   evidence_extracted: "evidence",
   evidence_ready: "evidence",
+  health_analysis_started: "health",
+  health_pathways_ready: "health",
   final_reasoning_started: "reasoning",
   assessment_completed: "reasoning",
 };
@@ -61,6 +67,7 @@ const STAGE_COMPLETION_TYPES = new Set<InvestigationEventType>([
   "research_plan_ready",
   "search_completed",
   "evidence_ready",
+  "health_pathways_ready",
   "assessment_completed",
 ]);
 
@@ -103,8 +110,11 @@ const KNOWN_EVENT_TYPES = new Set<string>([
   "evidence_analysis_started",
   "evidence_extracted",
   "evidence_ready",
+  "health_analysis_started",
+  "health_pathways_ready",
   "final_reasoning_started",
   "assessment_completed",
+  "awaiting_confirmation",
   "completed",
   "failed",
 ]);

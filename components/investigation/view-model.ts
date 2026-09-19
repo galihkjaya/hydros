@@ -27,6 +27,7 @@ export const STAGE_ORDER: readonly StageId[] = [
   "research",
   "search",
   "evidence",
+  "health",
   "reasoning",
 ];
 
@@ -50,6 +51,10 @@ export const STAGE_LABELS: Record<
   evidence: {
     label: "Evidence synthesis",
     activeLabel: "Analysing evidence…",
+  },
+  health: {
+    label: "One Health pathways",
+    activeLabel: "Mapping exposure pathways…",
   },
   reasoning: { label: "Assessment", activeLabel: "Preparing assessment…" },
 };
