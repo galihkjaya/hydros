@@ -3,14 +3,16 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Badge, Card, SectionHeading } from "@/components/ui/primitives";
+import { HealthPathways } from "./HealthPathways";
 import { InvestigationStatus } from "./InvestigationStatus";
 import { InvestigationTimeline } from "./InvestigationTimeline";
+import { ObservationConfirmation } from "./ObservationConfirmation";
 import { SourceGathering } from "./SourceGathering";
 import { SourceRow } from "./EvidenceCard";
 import { GeographicContextPanel, VisualObservations } from "./ContextPanels";
 import { RiskAssessment } from "./RiskAssessment";
 import { WaterMap } from "@/components/map/WaterMap";
-import { useInvestigationStream } from "./useInvestigation";
+import { usePhasedInvestigation } from "./useInvestigation";
 import { useDraft } from "@/lib/investigation/draft";
 import { formatCoordinate } from "@/lib/utils/validation";
 
@@ -28,10 +30,8 @@ export function InvestigationWorkspace({
 }) {
   // undefined until the client has read sessionStorage; null when absent.
   const draft = useDraft(investigationId);
-  const { state, connectionError } = useInvestigationStream(
-    draft,
-    investigationId,
-  );
+  const { state, connectionError, confirming, resume } =
+    usePhasedInvestigation(draft, investigationId);
 
   if (draft === null) {
     return (
@@ -54,13 +54,14 @@ export function InvestigationWorkspace({
   const searchStage = state.stages.find((stage) => stage.id === "search");
   const searching = searchStage?.state === "active";
   const error = state.error ?? connectionError;
+  const awaitingConfirmation = state.pendingConfirmation !== null;
 
   return (
     <div className="grid gap-10 lg:grid-cols-12">
       {/* Rail: input recap, status, timeline */}
       <div className="space-y-6 lg:col-span-5">
         <Card className="overflow-hidden lg:sticky lg:top-20">
-          {draft ? (
+          {draft?.imageDataUrl ? (
             <figure>
               <div className="relative aspect-[4/3] w-full border border-ink bg-paper-sunk">
                 <Image
@@ -144,6 +145,17 @@ export function InvestigationWorkspace({
 
       {/* Main column */}
       <div className="space-y-6 lg:col-span-7">
+        {awaitingConfirmation && state.pendingConfirmation ? (
+          <Card className="p-5 sm:p-6">
+            <ObservationConfirmation
+              visual={state.pendingConfirmation.visual}
+              geographic={state.pendingConfirmation.geographic}
+              onConfirm={resume}
+              confirming={confirming}
+            />
+          </Card>
+        ) : null}
+
         <Card className="p-5 sm:p-6">
           <SectionHeading
             label="Observation"
@@ -220,6 +232,15 @@ export function InvestigationWorkspace({
           ) : null}
         </Card>
 
+        {state.healthPathways.length > 0 ? (
+          <Card className="p-5 sm:p-6">
+            <HealthPathways
+              pathways={state.healthPathways}
+              sources={state.sources}
+            />
+          </Card>
+        ) : null}
+
         {state.assessment ? (
           <RiskAssessment
             assessment={state.assessment}
@@ -234,7 +255,9 @@ export function InvestigationWorkspace({
             <p className="mt-3 text-[0.875rem] text-muted">
               {error
                 ? "The investigation stopped before an assessment could be produced. Anything gathered before that point is shown above."
-                : "The assessment appears once the evidence has been gathered and reasoned over. It will state a risk level, its confidence, and what it cannot determine."}
+                : awaitingConfirmation
+                  ? "The assessment runs once you confirm the observations above."
+                  : "The assessment appears once the evidence has been gathered and reasoned over. It will state a risk level, its confidence, and what it cannot determine."}
             </p>
           </Card>
         )}

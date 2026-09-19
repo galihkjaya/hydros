@@ -11,13 +11,16 @@ import {
 import type { InvestigationEvent } from "@/types/events";
 import type {
   Evidence,
+  GeographicContext,
   GeographicSource,
+  HealthPathway,
   ResearchPlan,
   RiskAssessment,
   Source,
   VisualAnalysis,
 } from "@/types/investigation";
 import type { InvestigationDraft } from "@/lib/investigation/draft";
+import type { ConfirmationInput } from "@/types/investigation";
 
 /**
  * Workspace state, driven entirely by real pipeline events.
@@ -34,7 +37,13 @@ export type WorkspaceState = {
   plan: ResearchPlan | null;
   sources: Source[];
   evidence: Evidence[];
+  healthPathways: HealthPathway[];
   assessment: RiskAssessment | null;
+  /** Phase A output waiting for human review. Present only mid-confirmation. */
+  pendingConfirmation: {
+    visual: VisualAnalysis;
+    geographic: GeographicContext;
+  } | null;
   /** Live query text, shown while the search stage runs. */
   currentQuery?: string;
   finished: boolean;
@@ -49,7 +58,9 @@ export const initialWorkspaceState: WorkspaceState = {
   plan: null,
   sources: [],
   evidence: [],
+  healthPathways: [],
   assessment: null,
+  pendingConfirmation: null,
   finished: false,
 };
 
@@ -108,6 +119,12 @@ function stageDetail(event: InvestigationEvent): string | undefined {
         ? "No sourced claims could be extracted"
         : `${count} sourced claim${count === 1 ? "" : "s"}`;
     }
+    case "health_pathways_ready": {
+      const count = event.data.length;
+      return count === 0
+        ? "No exposure pathways mapped"
+        : `${count} exposure pathway${count === 1 ? "" : "s"} mapped`;
+    }
     case "assessment_completed":
       return undefined;
     default:
@@ -134,7 +151,18 @@ export function workspaceReducer(
 
   switch (event.type) {
     case "started":
-      return { ...initialWorkspaceState, stages };
+      // Phase B re-emits `started` on resume: keep Phase A data and reopen
+      // the timeline rather than wiping the confirmed observations.
+      return state.visual || state.pendingConfirmation
+        ? {
+            ...state,
+            stages: emptyStages(),
+            finished: false,
+            error: undefined,
+            currentQuery: undefined,
+            pendingConfirmation: null,
+          }
+        : { ...initialWorkspaceState, stages };
 
     case "vision_completed":
       return { ...state, stages, visual: event.data };
@@ -172,6 +200,21 @@ export function workspaceReducer(
         evidence: event.data.evidence,
         // The package carries the full ranked source list.
         sources: event.data.sources,
+      };
+
+    case "health_pathways_ready":
+      return { ...state, stages, healthPathways: event.data };
+
+    case "awaiting_confirmation":
+      return {
+        ...state,
+        stages,
+        visual: event.data.visual,
+        geoSources: event.data.geographic.potentialRiskSources,
+        pendingConfirmation: {
+          visual: event.data.visual,
+          geographic: event.data.geographic,
+        },
       };
 
     case "assessment_completed":
@@ -306,4 +349,140 @@ function readFrame(frame: string): InvestigationEvent | null {
   }
   if (dataLines.length === 0) return null;
   return decodeEvent(dataLines.join("\n"));
+}
+
+/**
+ * Two-phase investigation: Phase A streams observations, pauses for human
+ * confirmation, then Phase B streams research → assessment into the same
+ * reducer state. `confirm` resumes; `skip` resumes with the model's own set.
+ */
+export function usePhasedInvestigation(
+  draft: InvestigationDraft | null | undefined,
+  investigationId: string,
+) {
+  const [state, dispatch] = useReducer(workspaceReducer, initialWorkspaceState);
+  const [connectionError, setConnectionError] = useState<string | undefined>();
+  const [confirming, setConfirming] = useState(false);
+  // Guards against React's development double-effect starting two runs.
+  const startedRef = useRef(false);
+  const phaseARef = useRef<{
+    visual: VisualAnalysis;
+    geographic: GeographicContext;
+  } | null>(null);
+
+  useEffect(() => {
+    if (!draft || startedRef.current) return;
+    startedRef.current = true;
+
+    const controller = new AbortController();
+
+    void (async () => {
+      try {
+        const response = await fetch("/api/investigate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            ...(draft.imageDataUrl
+              ? { imageDataUrl: draft.imageDataUrl }
+              : {}),
+            latitude: draft.latitude,
+            longitude: draft.longitude,
+            note: draft.note,
+            ...(draft.guidedResponses
+              ? { guidedResponses: draft.guidedResponses }
+              : {}),
+            investigationId,
+          }),
+          signal: controller.signal,
+        });
+
+        if (!response.ok) {
+          const payload = await response.json().catch(() => null);
+          const message =
+            payload && typeof payload === "object" && "error" in payload
+              ? String((payload as { error: unknown }).error)
+              : "The investigation could not be started.";
+          setConnectionError(message);
+          return;
+        }
+
+        if (!response.body) {
+          setConnectionError("Streaming is not supported by this browser.");
+          return;
+        }
+
+        await consumeEventStream(
+          response.body,
+          (event) => {
+            if (event.type === "awaiting_confirmation") {
+              phaseARef.current = event.data;
+            }
+            dispatch(event);
+          },
+          controller.signal,
+        );
+      } catch (error) {
+        if (controller.signal.aborted) return;
+        setConnectionError(
+          error instanceof Error && error.name === "TypeError"
+            ? "The connection to the server was lost."
+            : "The investigation stopped unexpectedly.",
+        );
+      }
+    })();
+
+    return () => controller.abort();
+  }, [draft, investigationId]);
+
+  async function resume(confirmation: ConfirmationInput) {
+    const phaseA = phaseARef.current;
+    if (!phaseA || confirming) return;
+    setConfirming(true);
+    setConnectionError(undefined);
+
+    try {
+      const response = await fetch(`/api/investigate/${investigationId}/confirm`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          visual: phaseA.visual,
+          geographic: phaseA.geographic,
+          note: draft && typeof draft === "object" ? draft.note : "",
+          ...(draft?.imageDataUrl
+            ? { imageDataUrl: draft.imageDataUrl }
+            : {}),
+          confirmation,
+        }),
+      });
+
+      if (!response.ok) {
+        const payload = await response.json().catch(() => null);
+        const message =
+          payload && typeof payload === "object" && "error" in payload
+            ? String((payload as { error: unknown }).error)
+            : "The investigation could not continue.";
+        setConnectionError(message);
+        setConfirming(false);
+        return;
+      }
+
+      if (!response.body) {
+        setConnectionError("Streaming is not supported by this browser.");
+        setConfirming(false);
+        return;
+      }
+
+      await consumeEventStream(response.body, dispatch, new AbortController().signal);
+    } catch (error) {
+      if (error instanceof Error && error.name === "TypeError") {
+        setConnectionError("The connection to the server was lost.");
+      } else {
+        setConnectionError("The investigation stopped unexpectedly.");
+      }
+    } finally {
+      setConfirming(false);
+    }
+  }
+
+  return { state, connectionError, confirming, resume };
 }

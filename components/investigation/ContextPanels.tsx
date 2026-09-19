@@ -27,8 +27,23 @@ export function VisualObservations({
           key={`${observation.attribute}-${index}`}
           className="animate-rise border-l-2 border-ink pl-3"
         >
-          <div className="flex items-baseline justify-between gap-3">
-            <p className="wl-label">{ATTRIBUTE_LABELS[observation.attribute]}</p>
+          <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+            <p className="wl-label">
+              {ATTRIBUTE_LABELS[observation.attribute]}
+              {observation.provenance === "user_corrected" ? (
+                <span className="ml-2 border border-ink px-1 font-mono text-[0.625rem] tracking-widest">
+                  Corrected
+                </span>
+              ) : observation.provenance === "user_added" ? (
+                <span className="ml-2 font-mono text-[0.625rem] tracking-widest text-ink-faint">
+                  Added by you
+                </span>
+              ) : observation.provenance === "user_confirmed" ? (
+                <span className="ml-2 font-mono text-[0.625rem] tracking-widest text-ink-faint">
+                  Confirmed
+                </span>
+              ) : null}
+            </p>
             <span className="wl-mono shrink-0 text-subtle">
               {formatConfidence(observation.confidence)}
             </span>

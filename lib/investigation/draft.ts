@@ -13,16 +13,19 @@
  * Supabase persistence) if drafts need to be shareable or resumable.
  */
 import { useSyncExternalStore } from "react";
+import type { GuidedResponses } from "@/types/investigation";
 
 export type InvestigationDraft = {
-  /** JPEG data URL produced by prepareImage(). */
-  imageDataUrl: string;
+  /** JPEG data URL produced by prepareImage(). Absent in photo-less guided runs. */
+  imageDataUrl?: string;
   imageWidth: number;
   imageHeight: number;
   latitude: number;
   longitude: number;
   /** Optional user observation or question. */
   note: string;
+  /** Guided checklist answers, when the run started in guided mode. */
+  guidedResponses?: GuidedResponses;
   createdAt: string;
 };
 
@@ -43,19 +46,23 @@ export function loadDraft(id: string): InvestigationDraft | null {
   try {
     const parsed = JSON.parse(raw) as Partial<InvestigationDraft>;
     if (
-      typeof parsed.imageDataUrl !== "string" ||
+      (parsed.imageDataUrl !== undefined &&
+        typeof parsed.imageDataUrl !== "string") ||
       typeof parsed.latitude !== "number" ||
       typeof parsed.longitude !== "number"
     ) {
       return null;
     }
     return {
-      imageDataUrl: parsed.imageDataUrl,
+      ...(typeof parsed.imageDataUrl === "string"
+        ? { imageDataUrl: parsed.imageDataUrl }
+        : {}),
       imageWidth: parsed.imageWidth ?? 0,
       imageHeight: parsed.imageHeight ?? 0,
       latitude: parsed.latitude,
       longitude: parsed.longitude,
       note: parsed.note ?? "",
+      ...(parsed.guidedResponses ? { guidedResponses: parsed.guidedResponses } : {}),
       createdAt: parsed.createdAt ?? new Date().toISOString(),
     };
   } catch {
