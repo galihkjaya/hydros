@@ -132,7 +132,7 @@ Place: ${geographic.location.displayName || "not resolved"}
 Named waterways nearby: ${geographic.waterways.join(", ") || "none identified"}
 Area searched: ${geographic.radiusMetres} m radius`,
 
-    `OBSERVATIONS — what is visible in the photograph
+    `OBSERVATIONS — what is visible in the photograph or reported in the guided checklist
 ${observations || "- none recorded"}
 Scene: ${visual.summary || "not described"}
 Photographic limits: ${visual.limitations.join("; ") || "not stated"}`,

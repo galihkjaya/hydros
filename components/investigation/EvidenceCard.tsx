@@ -1,5 +1,11 @@
 import { Badge } from "@/components/ui/primitives";
 import { SourceFavicon } from "./SourceFavicon";
+import {
+  SOURCE_TYPE_LABEL,
+  SOURCE_TYPE_WEIGHT,
+  formatSourceAge,
+  isStaleSource,
+} from "@/lib/ai/integrity";
 import type { Evidence, Source, SourceType } from "@/types/investigation";
 
 const SOURCE_TONE: Record<SourceType, "accent" | "neutral"> = {
@@ -8,14 +14,6 @@ const SOURCE_TONE: Record<SourceType, "accent" | "neutral"> = {
   news: "neutral",
   community: "neutral",
   unverified: "neutral",
-};
-
-const SOURCE_LABEL: Record<SourceType, string> = {
-  government: "Government",
-  scientific: "Scientific",
-  news: "News",
-  community: "Community",
-  unverified: "Unverified",
 };
 
 /**
@@ -55,11 +53,13 @@ export function EvidenceCard({
             <span className="truncate">{source.title}</span>
           </a>
           <Badge tone={SOURCE_TONE[source.sourceType]}>
-            {SOURCE_LABEL[source.sourceType]}
+            {SOURCE_TYPE_LABEL[source.sourceType]} · ×
+            {SOURCE_TYPE_WEIGHT[source.sourceType].toFixed(1)}
           </Badge>
-          {source.publishedAt ? (
-            <span className="wl-mono text-subtle">{source.publishedAt}</span>
-          ) : null}
+          <span className="wl-mono text-subtle" title={source.publishedAt ?? "No publication date reported"}>
+            {source.publishedAt ?? "no date"} · {formatSourceAge(source)}
+            {isStaleSource(source) ? " · stale" : null}
+          </span>
         </footer>
       ) : (
         // The claim's source URL did not survive into the package: show the raw
@@ -93,11 +93,12 @@ export function SourceRow({ source }: { source: Source }) {
         <span className="block truncate text-[0.875rem] font-medium">
           {source.title}
         </span>
-        <span className="mt-0.5 flex items-center gap-2">
+        <span className="mt-0.5 flex flex-wrap items-center gap-2">
           <span className="wl-mono truncate text-subtle">{source.domain}</span>
           <Badge tone={SOURCE_TONE[source.sourceType]}>
-            {SOURCE_LABEL[source.sourceType]}
+            {SOURCE_TYPE_LABEL[source.sourceType]}
           </Badge>
+          <span className="wl-mono text-subtle">{formatSourceAge(source)}</span>
         </span>
         {source.snippet ? (
           <span className="mt-1.5 line-clamp-2 block text-[0.8125rem] text-muted">
