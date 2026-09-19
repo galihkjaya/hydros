@@ -1,5 +1,5 @@
 /**
- * Reports which WaterLens environment variables are configured.
+ * Reports which Hydros environment variables are configured.
  *
  *   npm run check-env
  *
@@ -42,7 +42,7 @@ const resolve = (name) => process.env[name] || fromFile[name] || "";
 
 let missingRequired = 0;
 
-console.log("WaterLens environment check\n");
+console.log("Hydros environment check\n");
 console.log("Required for a full investigation:");
 for (const name of REQUIRED_FOR_INVESTIGATION) {
   const present = resolve(name).length > 0;

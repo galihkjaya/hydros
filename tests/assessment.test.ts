@@ -1,7 +1,7 @@
 /**
  * Self-check for the final assessment rails.
  *
- * These are the guarantees that keep WaterLens honest, so each one is pinned:
+ * These are the guarantees that keep Hydros honest, so each one is pinned:
  * no unsupported risk level, no overstated confidence, no assertion of safety,
  * and never an empty limitations list.
  */

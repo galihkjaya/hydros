@@ -36,7 +36,7 @@ export async function resolveLocation(location: Location): Promise<Location> {
   try {
     const response = await fetch(url, {
       headers: {
-        "User-Agent": "WaterLens/0.1 (water investigation tool)",
+        "User-Agent": "Hydros/0.1 (water investigation tool)",
         "Accept-Language": "en",
       },
       signal: controller.signal,

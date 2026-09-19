@@ -33,7 +33,7 @@ const RISK_LEVELS: readonly RiskLevel[] = [
   "INSUFFICIENT_DATA",
 ];
 
-export const ASSESSMENT_SYSTEM_PROMPT = `You are the final reasoning stage of WaterLens, a water investigation tool.
+export const ASSESSMENT_SYSTEM_PROMPT = `You are the final reasoning stage of Hydros, a water investigation tool.
 
 You receive an evidence package: visual observations of a water source, its geographic context, summarised claims from retrieved sources, and the limits of both. You produce a structured assessment.
 
@@ -233,7 +233,7 @@ export function parseAssessment(
   const cleanedSummary = SAFETY_ASSERTION_PATTERNS.some((pattern) =>
     pattern.test(summary),
   )
-    ? `${summary} (Note: WaterLens cannot determine whether water is safe; only a laboratory test can.)`
+    ? `${summary} (Note: Hydros cannot determine whether water is safe; only a laboratory test can.)`
     : summary;
 
   let riskLevel = coerceEnum(json.riskLevel, RISK_LEVELS, "INSUFFICIENT_DATA");

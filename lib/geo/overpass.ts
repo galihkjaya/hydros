@@ -113,7 +113,7 @@ export async function queryOverpass(
         headers: {
           "Content-Type": "application/x-www-form-urlencoded",
           // Overpass asks clients to identify themselves.
-          "User-Agent": "WaterLens/0.1 (water investigation tool)",
+          "User-Agent": "Hydros/0.1 (water investigation tool)",
         },
         body: new URLSearchParams({ data: query }).toString(),
         signal: controller.signal,
