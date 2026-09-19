@@ -12,6 +12,10 @@
  */
 import { askCerebras } from "./cerebras";
 import {
+  findOrphanedEvidence,
+  weightEvidenceBySourceType,
+} from "./integrity";
+import {
   coerceConfidence,
   coerceObjectArray,
   coerceString,
@@ -108,7 +112,7 @@ Snippet: ${source.snippet || "(no snippet available)"}`,
 Coordinates: ${geographic.location.latitude}, ${geographic.location.longitude}
 Place: ${geographic.location.displayName || "not resolved"}
 Named waterways: ${geographic.waterways.join(", ") || "none identified"}`,
-    `VISUAL OBSERVATIONS (from the photograph)
+    `VISUAL OBSERVATIONS (from the photograph or guided checklist)
 ${observations || "- none recorded"}`,
     `RESEARCH QUESTIONS
 ${plan.questions.map((question) => `- ${question}`).join("\n") || "- none recorded"}`,
@@ -181,6 +185,22 @@ export function parseEvidence(
     unansweredQuestions: coerceStringArray(json.unansweredQuestions, 6, 240),
     limitations: coerceStringArray(json.limitations, 6, 300),
   };
+}
+
+/**
+ * Final integrity pass over an evidence list.
+ *
+ * Drops claims whose source URL resolves to no Source in the package
+ * (hallucinated citations), then applies source-type weighting and the
+ * staleness discount. Runs on every package before it leaves this stage.
+ */
+export function finalizeEvidence(
+  evidence: Evidence[],
+  sources: readonly Source[],
+): Evidence[] {
+  const orphans = new Set(findOrphanedEvidence(evidence, sources));
+  const intact = evidence.filter((item) => !orphans.has(item.sourceUrl));
+  return weightEvidenceBySourceType(intact, sources);
 }
 
 /** Baseline caveats that hold for every investigation, model output aside. */
@@ -264,7 +284,7 @@ export async function extractEvidence({
         responseText,
         new Set(ranked.map((source) => source.url)),
       );
-      evidence = parsed.evidence;
+      evidence = finalizeEvidence(parsed.evidence, ranked);
       unansweredQuestions = parsed.unansweredQuestions;
       limitations = parsed.limitations;
     } catch (error) {

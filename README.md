@@ -119,7 +119,10 @@ Assessment + FHIR / JSON-LD exports + sites / trends / alerts
 ```
 
 Untrusted text (user notes, search snippets, page titles, OSM tags) is passed
-to models as delimited *data*, never instructions. Every external service can
+to models as delimited *data*, never instructions. Evidence relevance is weighted
+by source tier (government > scientific > news > community > unverified), stale
+acute-claim sources are discounted, and every claim must resolve to a retrieved
+source URL. Every external service can
 fail without killing the investigation, and persistence stays optional — the
 app runs end-to-end with Supabase unconfigured.
 

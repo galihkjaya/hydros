@@ -46,7 +46,7 @@ export function Footer() {
             >
               Repository
             </a>{" "}
-            · Open source
+            · MIT License
           </p>
         </div>
       </div>

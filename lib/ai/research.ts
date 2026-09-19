@@ -96,7 +96,7 @@ Place: ${location.displayName || "not resolved"}
 Country: ${location.countryCode || "unknown"}`,
     `NAMED WATERWAYS AT OR NEAR THE POINT
 ${geographic.waterways.length > 0 ? geographic.waterways.map((name) => `- ${name}`).join("\n") : "- none identified"}`,
-    `VISUAL OBSERVATIONS
+    `VISUAL OBSERVATIONS (from the photograph or guided checklist)
 ${observations || "- none recorded"}`,
     `NEARBY MAPPED FEATURES (proximity only, no causal claim)
 ${nearby || "- none found"}`,
