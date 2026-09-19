@@ -18,8 +18,8 @@ const visual: VisualAnalysis = {
   isWaterVisible: true,
   summary: "Brown water.",
   observations: [
-    { attribute: "color", description: "Brown.", confidence: 0.9 },
-    { attribute: "clarity", description: "Turbid.", confidence: 0.7 },
+    { attribute: "color", description: "Brown.", confidence: 0.9, provenance: "model" },
+    { attribute: "clarity", description: "Turbid.", confidence: 0.7, provenance: "model" },
   ],
   limitations: ["Not a lab test."],
 };
