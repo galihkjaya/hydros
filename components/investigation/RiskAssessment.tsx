@@ -6,6 +6,7 @@ import {
 } from "@/components/ui/primitives";
 import { formatConfidence } from "@/lib/utils/format";
 import { EvidenceCard } from "./EvidenceCard";
+import { FhirViewer } from "./FhirViewer";
 import { RISK_LEVEL_LABELS } from "./view-model";
 import type {
   Evidence,
@@ -33,9 +34,11 @@ const LEVEL_BLURB: Record<RiskLevel, string> = {
 export function RiskAssessment({
   assessment,
   sources,
+  investigationId,
 }: {
   assessment: RiskAssessmentData;
   sources: readonly Source[];
+  investigationId: string;
 }) {
   const tone = riskChipTone(assessment.riskLevel);
   const byUrl = new Map(sources.map((source) => [source.url, source]));
@@ -131,6 +134,8 @@ export function RiskAssessment({
             </ul>
           </section>
         ) : null}
+
+        <FhirViewer investigationId={investigationId} />
       </div>
     </div>
   );

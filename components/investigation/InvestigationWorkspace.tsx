@@ -245,6 +245,7 @@ export function InvestigationWorkspace({
           <RiskAssessment
             assessment={state.assessment}
             sources={state.sources}
+            investigationId={investigationId}
           />
         ) : (
           <Card className="p-5 sm:p-6">
