@@ -69,15 +69,15 @@
 ---
 
 ### Branch 3: `feat/ai-research` — Interoperability, FAIR Data & Evidence Hardening
-- `[ ]` Build FHIR R4 mapping library (`lib/fhir/bundle.ts`, `resources.ts`, `code-system.ts`)
-- `[ ]` Create FHIR export endpoint (`/api/investigate/[id]/fhir/route.ts`) returning `application/fhir+json`
-- `[ ]` Create JSON-LD endpoints (`/api/investigate/[id]/jsonld` & `/api/investigations.jsonld`) with Schema.org & DCAT compliance
-- `[ ]` Add `FhirViewer.tsx` component to investigation workspace
-- `[ ]` Harden evidence extraction (`lib/ai/evidence.ts`) with source-type weighting, claim-source URL matching, and staleness signals
-- `[ ]` Strengthen prompt-injection defenses across AI prompt builders
-- `[ ]` Update evidence card UI to display source weighting and source age inline
-- `[ ]` Add test suites (`tests/injection.test.ts`, `tests/fhir.test.ts`, `tests/evidence-integrity.test.ts`, `tests/fair.test.ts`)
-- `[ ]` Run verification: `npm run typecheck && npm run lint && npm run test`
+- `[x]` Build FHIR R4 mapping library (`lib/fhir/bundle.ts`, `resources.ts`, `code-system.ts`)
+- `[x]` Create FHIR export endpoint (`/api/investigate/[id]/fhir/route.ts`) returning `application/fhir+json`
+- `[x]` Create JSON-LD endpoints (`/api/investigate/[id]/jsonld` & `/api/investigations.jsonld`) with Schema.org & DCAT compliance
+- `[x]` Add `FhirViewer.tsx` component to investigation workspace
+- `[x]` Harden evidence extraction (`lib/ai/evidence.ts`) with source-type weighting, claim-source URL matching, and staleness signals
+- `[x]` Strengthen prompt-injection defenses across AI prompt builders
+- `[x]` Update evidence card UI to display source weighting and source age inline
+- `[x]` Add test suites (`tests/injection.test.ts`, `tests/fhir.test.ts`, `tests/evidence-integrity.test.ts`, `tests/fair.test.ts`)
+- `[x]` Run verification: `npm run typecheck && npm run lint && npm run test`
 - `[ ]` Merge `feat/ai-research` into `test` branch (`--no-ff`)
 
 ---
