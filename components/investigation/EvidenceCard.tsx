@@ -33,7 +33,7 @@ export function EvidenceCard({
   source: Source | undefined;
 }) {
   return (
-    <article className="rounded-lg border border-line bg-surface p-4">
+    <article className="border border-line bg-surface p-4">
       <p className="text-[0.9375rem] leading-6">{evidence.claim}</p>
 
       {evidence.uncertainty ? (
@@ -86,7 +86,7 @@ export function SourceRow({ source }: { source: Source }) {
       href={source.url}
       target="_blank"
       rel="noreferrer noopener nofollow"
-      className="animate-rise flex items-start gap-3 rounded-lg border border-line bg-surface p-3 transition-colors hover:bg-surface-muted"
+      className="animate-rise flex items-start gap-3 border border-line bg-surface p-3 transition-colors hover:bg-surface-muted"
     >
       <SourceFavicon url={source.url} size={20} className="mt-0.5" />
       <span className="min-w-0 flex-1">

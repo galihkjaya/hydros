@@ -57,16 +57,16 @@ export function InvestigationStatus({
       {/* Progress rail. aria-hidden: the text above already conveys state. */}
       <div
         aria-hidden="true"
-        className="mt-3 h-1 w-full overflow-hidden rounded-full bg-surface-muted"
+        className="mt-3 h-px w-full overflow-hidden bg-rule"
       >
         <div
-          className="h-full rounded-full bg-accent transition-[width] duration-500 ease-out"
+          className="h-full bg-ink transition-[width] duration-500 ease-out"
           style={{ width: `${Math.max(progress, finished ? 100 : 4)}%` }}
         />
       </div>
 
       {error ? (
-        <p role="alert" className="mt-3 text-[0.875rem] text-risk-high">
+        <p role="alert" className="mt-3 text-[0.875rem] text-signal">
           {error}
         </p>
       ) : null}
@@ -78,7 +78,7 @@ function Spinner() {
   return (
     <span
       aria-hidden="true"
-      className="size-4 shrink-0 animate-spin rounded-full border-2 border-line-strong border-t-accent"
+      className="size-4 shrink-0 animate-spin border-2 border-ink-faint border-t-ink"
     />
   );
 }

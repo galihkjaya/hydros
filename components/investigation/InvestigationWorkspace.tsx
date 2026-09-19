@@ -35,19 +35,19 @@ export function InvestigationWorkspace({
 
   if (draft === null) {
     return (
-      <Card className="mx-auto max-w-md p-6 text-center">
-        <h1 className="text-lg font-semibold">Investigation not found</h1>
-        <p className="mt-2 text-muted">
+      <div className="mx-auto max-w-md border-t-2 border-ink p-6 pt-4 text-center">
+        <h1 className="font-serif text-2xl">Investigation not found</h1>
+        <p className="mt-2 text-ink-muted">
           This investigation is no longer in this tab&apos;s session. Start a new
           one to continue.
         </p>
         <Link
           href="/investigate"
-          className="mt-5 inline-flex h-10 items-center justify-center rounded-lg bg-accent px-4 text-sm font-medium text-accent-foreground"
+          className="mt-5 inline-flex h-10 items-center justify-center bg-ink px-4 text-sm font-medium text-paper"
         >
           New investigation
         </Link>
-      </Card>
+      </div>
     );
   }
 
@@ -56,21 +56,26 @@ export function InvestigationWorkspace({
   const error = state.error ?? connectionError;
 
   return (
-    <div className="grid gap-6 lg:grid-cols-5">
+    <div className="grid gap-10 lg:grid-cols-12">
       {/* Rail: input recap, status, timeline */}
-      <div className="space-y-6 lg:col-span-2">
+      <div className="space-y-6 lg:col-span-5">
         <Card className="overflow-hidden lg:sticky lg:top-20">
           {draft ? (
-            <div className="relative aspect-[4/3] w-full bg-surface-muted">
-              <Image
-                src={draft.imageDataUrl}
-                alt="The water source under investigation"
-                fill
-                unoptimized
-                sizes="(max-width: 1024px) 100vw, 400px"
-                className="object-cover"
-              />
-            </div>
+            <figure>
+              <div className="relative aspect-[4/3] w-full border border-ink bg-paper-sunk">
+                <Image
+                  src={draft.imageDataUrl}
+                  alt="The water source under investigation"
+                  fill
+                  unoptimized
+                  sizes="(max-width: 1024px) 100vw, 400px"
+                  className="object-cover"
+                />
+              </div>
+              <figcaption className="mt-2 font-serif text-sm text-ink-muted italic">
+                The water source under investigation.
+              </figcaption>
+            </figure>
           ) : null}
 
           <div className="space-y-5 p-5">
@@ -127,7 +132,7 @@ export function InvestigationWorkspace({
               <div className="border-t border-line pt-5">
                 <Link
                   href="/investigate"
-                  className="inline-flex h-10 items-center justify-center rounded-lg border border-line-strong px-4 text-sm font-medium transition-colors hover:bg-surface-muted"
+                  className="inline-flex h-10 items-center justify-center border border-ink px-4 text-sm font-medium transition-colors hover:bg-paper-sunk"
                 >
                   Start a new investigation
                 </Link>
@@ -138,7 +143,7 @@ export function InvestigationWorkspace({
       </div>
 
       {/* Main column */}
-      <div className="space-y-6 lg:col-span-3">
+      <div className="space-y-6 lg:col-span-7">
         <Card className="p-5 sm:p-6">
           <SectionHeading
             label="Observation"

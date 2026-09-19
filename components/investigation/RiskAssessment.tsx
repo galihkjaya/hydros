@@ -1,4 +1,9 @@
-import { Badge, Card, SectionHeading } from "@/components/ui/primitives";
+import {
+  Chip,
+  ConfidenceRule,
+  SectionHeading,
+  riskChipTone,
+} from "@/components/ui/primitives";
 import { formatConfidence } from "@/lib/utils/format";
 import { EvidenceCard } from "./EvidenceCard";
 import { RISK_LEVEL_LABELS } from "./view-model";
@@ -8,13 +13,6 @@ import type {
   RiskLevel,
   Source,
 } from "@/types/investigation";
-
-const LEVEL_TONE: Record<RiskLevel, "low" | "medium" | "high" | "unknown"> = {
-  LOW: "low",
-  MEDIUM: "medium",
-  HIGH: "high",
-  INSUFFICIENT_DATA: "unknown",
-};
 
 const LEVEL_BLURB: Record<RiskLevel, string> = {
   LOW: "No strong indicators found in the visible evidence or the records.",
@@ -39,26 +37,34 @@ export function RiskAssessment({
   assessment: RiskAssessmentData;
   sources: readonly Source[];
 }) {
-  const tone = LEVEL_TONE[assessment.riskLevel];
+  const tone = riskChipTone(assessment.riskLevel);
   const byUrl = new Map(sources.map((source) => [source.url, source]));
+  const high = assessment.riskLevel === "HIGH";
 
   return (
-    <Card className="animate-rise overflow-hidden">
-      <header className="border-b border-line bg-surface-muted/60 p-5 sm:p-6">
+    <div
+      className={
+        high
+          ? "animate-rise border border-ink border-l-[3px] border-l-signal"
+          : "animate-rise border-t border-rule"
+      }
+    >
+      <header className="border-b border-rule bg-paper-sunk/60 p-5 sm:p-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="wl-label">Assessment</p>
-            <h2 className="mt-1 text-xl font-semibold">
+            <h2 className="mt-1 font-serif text-2xl">
               {RISK_LEVEL_LABELS[assessment.riskLevel]}
             </h2>
           </div>
           <div className="text-right">
-            <Badge tone={tone}>
+            <Chip tone={tone}>
               {assessment.riskLevel.replace("_", " ")}
-            </Badge>
+            </Chip>
             <p className="mt-1.5 wl-mono text-subtle">
               confidence {formatConfidence(assessment.confidence)}
             </p>
+            <ConfidenceRule value={assessment.confidence} className="mt-2 w-40" />
           </div>
         </div>
         <p className="mt-3 text-[0.875rem] text-muted">
@@ -104,7 +110,7 @@ export function RiskAssessment({
           </section>
         ) : null}
 
-        <section className="rounded-lg border border-accent/30 bg-accent-muted/50 p-4">
+        <section className="border border-ink p-4">
           <p className="wl-label">What to do next</p>
           <p className="mt-2 leading-6">{assessment.recommendation}</p>
         </section>
@@ -126,7 +132,7 @@ export function RiskAssessment({
           </section>
         ) : null}
       </div>
-    </Card>
+    </div>
   );
 }
 
@@ -134,7 +140,7 @@ function Dot() {
   return (
     <span
       aria-hidden="true"
-      className="mt-2.5 size-1.5 shrink-0 rounded-full bg-line-strong"
+      className="mt-2.5 size-1.5 shrink-0 bg-ink-faint"
     />
   );
 }

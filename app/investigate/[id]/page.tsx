@@ -10,7 +10,7 @@ export default async function InvestigationPage({
   const { id } = await params;
 
   return (
-    <main className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6 sm:py-10">
+    <main className="mx-auto w-full max-w-[1180px] px-6 py-8 sm:px-10 sm:py-10">
       <InvestigationWorkspace investigationId={id} />
     </main>
   );
