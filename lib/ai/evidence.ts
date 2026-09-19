@@ -284,6 +284,8 @@ export async function extractEvidence({
     // Keep every discovered source for transparency, even unused ones.
     sources: [...sources].sort((a, b) => b.relevance - a.relevance),
     evidence: evidence.sort((a, b) => b.relevance - a.relevance),
+    // The One Health stage fills this in; the package is valid without it.
+    healthPathways: [],
     unansweredQuestions,
     limitations: [...limitations, ...baselineLimitations(sources, failedQueries)],
   };
