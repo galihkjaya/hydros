@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useReducer, useRef, useState } from "react";
+import { useCallback, useEffect, useReducer, useRef, useState } from "react";
 import { emptyStages, type StageId, type TimelineStage } from "./view-model";
 import {
   completesStage,
@@ -14,6 +14,7 @@ import type {
   GeographicContext,
   GeographicSource,
   HealthPathway,
+  Investigation,
   ResearchPlan,
   RiskAssessment,
   Source,
@@ -151,18 +152,28 @@ export function workspaceReducer(
 
   switch (event.type) {
     case "started":
-      // Phase B re-emits `started` on resume: keep Phase A data and reopen
-      // the timeline rather than wiping the confirmed observations.
-      return state.visual || state.pendingConfirmation
-        ? {
-            ...state,
-            stages: emptyStages(),
-            finished: false,
-            error: undefined,
-            currentQuery: undefined,
-            pendingConfirmation: null,
-          }
-        : { ...initialWorkspaceState, stages };
+      // Phase B re-emits `started` on resume: the confirmed observations
+      // stand, so vision and geography stay done (marked confirmed) and only
+      // the downstream timeline reopens.
+      if (state.visual || state.pendingConfirmation) {
+        return {
+          ...state,
+          stages: state.stages.map((stage) =>
+            stage.id === "vision" || stage.id === "geo"
+              ? {
+                  ...stage,
+                  state: "done" as const,
+                  detail: "Confirmed by you",
+                }
+              : { ...stage, state: "pending" as const, detail: undefined },
+          ),
+          finished: false,
+          error: undefined,
+          currentQuery: undefined,
+          pendingConfirmation: null,
+        };
+      }
+      return { ...initialWorkspaceState, stages };
 
     case "vision_completed":
       return { ...state, stages, visual: event.data };
@@ -221,7 +232,17 @@ export function workspaceReducer(
       return { ...state, stages, assessment: event.data };
 
     case "completed":
-      return { ...state, stages, finished: true };
+      // Terminal: anything that never ran was skipped, never silently
+      // pending. Skipped stages keep the percentage honest at 100%.
+      return {
+        ...state,
+        stages: state.stages.map((stage) =>
+          stage.state === "pending"
+            ? { ...stage, state: "skipped" as const }
+            : stage,
+        ),
+        finished: true,
+      };
 
     case "failed": {
       const failedStage = event.data.stage === "input" ? null : event.data.stage;
@@ -234,74 +255,176 @@ export function workspaceReducer(
     }
 
     default:
+      // Unknown event type. Never a silent no-op: warn in development so a
+      // server/client drift gets noticed instead of freezing progress.
+      if (process.env.NODE_ENV !== "production") {
+        console.warn(`[hydros] unhandled investigation event: ${(event as { type: string }).type}`);
+      }
       return { ...state, stages };
   }
 }
 
 /**
- * Runs an investigation and streams its events into the reducer.
+ * Shared SSE subscriptions.
  *
- * SSE over `fetch` rather than `EventSource`, because the request needs to be a
- * POST carrying the image. Parsing the frames by hand is a few lines and avoids
- * a dependency.
+ * One live reader per investigation id, broadcasting to every mounted
+ * listener. This is what makes progress survive React StrictMode remounts:
+ * the remount re-subscribes to the still-running reader instead of starting a
+ * duplicate backend run (double cost) or aborting the live one (frozen 0%
+ * with an orphaned run completing invisibly server-side — the exact failure
+ * this replaces).
+ *
+ * Cleanup never aborts the shared run: a cleanup may be a StrictMode
+ * remount, and aborting would orphan the backend run while freezing the UI.
+ * Runs are bounded — the reader stops at the terminal event.
  */
-export function useInvestigationStream(draft: InvestigationDraft | null | undefined, investigationId: string) {
-  const [state, dispatch] = useReducer(workspaceReducer, initialWorkspaceState);
-  const [connectionError, setConnectionError] = useState<string | undefined>();
-  // Guards against React's development double-effect starting two runs.
-  const startedRef = useRef(false);
+type StreamHooks = {
+  onEvent: (event: InvestigationEvent) => void;
+  onError: (message: string) => void;
+};
 
-  useEffect(() => {
-    if (!draft || startedRef.current) return;
-    startedRef.current = true;
+const streamListeners = new Map<string, Set<StreamHooks>>();
+const streamRuns = new Map<string, Promise<void>>();
 
-    const controller = new AbortController();
+function subscribeStream(
+  id: string,
+  url: string,
+  body: unknown,
+  hooks: StreamHooks,
+): () => void {
+  let set = streamListeners.get(id);
+  if (!set) {
+    set = new Set();
+    streamListeners.set(id, set);
+  }
+  set.add(hooks);
 
-    void (async () => {
-      try {
-        const response = await fetch("/api/investigate", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            imageDataUrl: draft.imageDataUrl,
-            latitude: draft.latitude,
-            longitude: draft.longitude,
-            note: draft.note,
-            investigationId,
-          }),
-          signal: controller.signal,
-        });
+  if (!streamRuns.has(id)) {
+    streamRuns.set(
+      id,
+      runStream(id, url, body).finally(() => {
+        streamRuns.delete(id);
+      }),
+    );
+  }
 
-        if (!response.ok) {
-          const payload = await response.json().catch(() => null);
-          const message =
-            payload && typeof payload === "object" && "error" in payload
-              ? String((payload as { error: unknown }).error)
-              : "The investigation could not be started.";
-          setConnectionError(message);
-          return;
-        }
+  return () => {
+    const live = streamListeners.get(id);
+    if (live) {
+      live.delete(hooks);
+      if (live.size === 0) streamListeners.delete(id);
+    }
+  };
+}
 
-        if (!response.body) {
-          setConnectionError("Streaming is not supported by this browser.");
-          return;
-        }
+async function runStream(id: string, url: string, body: unknown): Promise<void> {
+  const emit = (event: InvestigationEvent) => {
+    for (const hooks of streamListeners.get(id) ?? []) hooks.onEvent(event);
+  };
+  const fail = (message: string) => {
+    for (const hooks of streamListeners.get(id) ?? []) hooks.onError(message);
+  };
 
-        await consumeEventStream(response.body, dispatch, controller.signal);
-      } catch (error) {
-        if (controller.signal.aborted) return;
-        setConnectionError(
-          error instanceof Error && error.name === "TypeError"
-            ? "The connection to the server was lost."
-            : "The investigation stopped unexpectedly.",
-        );
-      }
-    })();
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+  } catch {
+    fail("The connection to the server was lost.");
+    return;
+  }
 
-    return () => controller.abort();
-  }, [draft, investigationId]);
+  if (!response.ok) {
+    const payload: unknown = await response.json().catch(() => null);
+    fail(
+      payload && typeof payload === "object" && "error" in payload
+        ? String((payload as { error: unknown }).error)
+        : "The investigation could not be started.",
+    );
+    return;
+  }
 
-  return { state, connectionError };
+  if (!response.body) {
+    fail("Streaming is not supported by this browser.");
+    return;
+  }
+
+  try {
+    // Never aborted: listeners come and go, the run is bounded by the
+    // terminal event.
+    await consumeEventStream(response.body, emit, new AbortController().signal);
+  } catch {
+    fail("The investigation stopped unexpectedly.");
+  }
+}
+
+/**
+ * Maps a persisted investigation onto synthetic events.
+ *
+ * Poll fallback when the stream drops: lets a dead stream still reach the
+ * terminal states instead of freezing. Shapes match the live events exactly,
+ * so the reducer cannot tell the difference.
+ */
+export function persistedToEvents(
+  investigation: Investigation,
+): InvestigationEvent[] {
+  const events: InvestigationEvent[] = [
+    { type: "started", data: { investigationId: investigation.id } },
+  ];
+  if (investigation.visual) {
+    events.push({ type: "vision_completed", data: investigation.visual });
+  }
+  if (investigation.geographic) {
+    events.push({
+      type: "location_resolved",
+      data: investigation.geographic.location,
+    });
+    events.push({ type: "geo_search_completed", data: investigation.geographic });
+  }
+  if (investigation.status === "awaiting_confirmation" && investigation.visual && investigation.geographic) {
+    events.push({
+      type: "awaiting_confirmation",
+      data: {
+        visual: investigation.visual,
+        geographic: investigation.geographic,
+      },
+    });
+    return events;
+  }
+  for (const source of investigation.sources) {
+    events.push({ type: "source_found", data: source });
+  }
+  events.push({
+    type: "search_completed",
+    data: { sourceCount: investigation.sources.length },
+  });
+  if (investigation.evidence.length > 0 || investigation.sources.length > 0) {
+    events.push({ type: "evidence_extracted", data: investigation.evidence });
+  }
+  if (investigation.healthPathways.length > 0) {
+    events.push({
+      type: "health_pathways_ready",
+      data: investigation.healthPathways,
+    });
+  }
+  if (investigation.assessment) {
+    events.push({
+      type: "assessment_completed",
+      data: investigation.assessment,
+    });
+  }
+  if (investigation.status === "completed") {
+    events.push({ type: "completed" });
+  } else if (investigation.status === "failed") {
+    events.push({
+      type: "failed",
+      data: { stage: "input", message: investigation.error ?? "The investigation could not be completed." },
+    });
+  }
+  return events;
 }
 
 /**
@@ -363,82 +486,120 @@ export function usePhasedInvestigation(
   const [state, dispatch] = useReducer(workspaceReducer, initialWorkspaceState);
   const [connectionError, setConnectionError] = useState<string | undefined>();
   const [confirming, setConfirming] = useState(false);
-  // Guards against React's development double-effect starting two runs.
-  const startedRef = useRef(false);
+  /** Visible "still working" state when events stall beyond the watchdog. */
+  const [stalled, setStalled] = useState(false);
   const phaseARef = useRef<{
     visual: VisualAnalysis;
     geographic: GeographicContext;
   } | null>(null);
+  const lastEventAt = useRef<number>(0);
+  const finishedRef = useRef(false);
+  const pollGeneration = useRef(0);
 
-  useEffect(() => {
-    if (!draft || startedRef.current) return;
-    startedRef.current = true;
+  function noteEvent() {
+    lastEventAt.current = Date.now();
+    setStalled(false);
+  }
 
-    const controller = new AbortController();
-
+  /** Polls the persisted investigation until it reaches a poll-terminal state. */
+  const startPolling = useCallback(() => {
+    const generation = ++pollGeneration.current;
     void (async () => {
-      try {
-        const response = await fetch("/api/investigate", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            ...(draft.imageDataUrl
-              ? { imageDataUrl: draft.imageDataUrl }
-              : {}),
-            latitude: draft.latitude,
-            longitude: draft.longitude,
-            note: draft.note,
-            ...(draft.guidedResponses
-              ? { guidedResponses: draft.guidedResponses }
-              : {}),
-            investigationId,
-          }),
-          signal: controller.signal,
-        });
-
-        if (!response.ok) {
-          const payload = await response.json().catch(() => null);
-          const message =
-            payload && typeof payload === "object" && "error" in payload
-              ? String((payload as { error: unknown }).error)
-              : "The investigation could not be started.";
-          setConnectionError(message);
-          return;
-        }
-
-        if (!response.body) {
-          setConnectionError("Streaming is not supported by this browser.");
-          return;
-        }
-
-        await consumeEventStream(
-          response.body,
-          (event) => {
-            if (event.type === "awaiting_confirmation") {
-              phaseARef.current = event.data;
-            }
+      for (let attempt = 0; attempt < 75; attempt += 1) {
+        // Superseded, unmounted, or already finished via the stream.
+        if (generation !== pollGeneration.current || finishedRef.current) return;
+        await new Promise((resolve) => setTimeout(resolve, 8000));
+        if (generation !== pollGeneration.current || finishedRef.current) return;
+        try {
+          const response = await fetch(`/api/investigate/${investigationId}`);
+          if (!response.ok) continue;
+          const investigation = (await response.json()) as Investigation;
+          for (const event of persistedToEvents(investigation)) {
+            noteEvent();
             dispatch(event);
-          },
-          controller.signal,
-        );
-      } catch (error) {
-        if (controller.signal.aborted) return;
-        setConnectionError(
-          error instanceof Error && error.name === "TypeError"
-            ? "The connection to the server was lost."
-            : "The investigation stopped unexpectedly.",
-        );
+          }
+          if (
+            investigation.status === "completed" ||
+            investigation.status === "failed" ||
+            investigation.status === "awaiting_confirmation"
+          ) {
+            return;
+          }
+        } catch {
+          // Polling is best-effort; the next round retries.
+        }
       }
     })();
+  }, [investigationId]);
 
-    return () => controller.abort();
-  }, [draft, investigationId]);
+  useEffect(() => {
+    finishedRef.current = state.finished;
+  }, [state.finished]);
+
+  // Watchdog: silence beyond 45s is "still working", never a frozen 0%.
+  useEffect(() => {
+    const timer = setInterval(() => {
+      if (
+        !finishedRef.current &&
+        Date.now() - lastEventAt.current > 45_000
+      ) {
+        setStalled(true);
+      }
+    }, 5000);
+    return () => clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    if (!draft) return;
+    pollGeneration.current += 1;
+    lastEventAt.current = Date.now();
+
+    const unsubscribe = subscribeStream(
+      investigationId,
+      "/api/investigate",
+      {
+        ...(draft.imageDataUrl ? { imageDataUrl: draft.imageDataUrl } : {}),
+        latitude: draft.latitude,
+        longitude: draft.longitude,
+        note: draft.note,
+        ...(draft.guidedResponses
+          ? { guidedResponses: draft.guidedResponses }
+          : {}),
+        investigationId,
+      },
+      {
+        onEvent: (event) => {
+          noteEvent();
+          if (event.type === "awaiting_confirmation") {
+            phaseARef.current = event.data;
+          }
+          if (isTerminalEvent(event)) finishedRef.current = true;
+          dispatch(event);
+        },
+        onError: (message) => {
+          setConnectionError(message);
+          // The stream died: fall back to polling so terminal states still
+          // render instead of freezing.
+          startPolling();
+        },
+      },
+    );
+
+    return unsubscribe;
+  }, [draft, investigationId, startPolling]);
 
   async function resume(confirmation: ConfirmationInput) {
     const phaseA = phaseARef.current;
     if (!phaseA || confirming) return;
     setConfirming(true);
     setConnectionError(undefined);
+    pollGeneration.current += 1;
+
+    const onStreamEvent = (event: InvestigationEvent) => {
+      noteEvent();
+      if (isTerminalEvent(event)) finishedRef.current = true;
+      dispatch(event);
+    };
 
     try {
       const response = await fetch(`/api/investigate/${investigationId}/confirm`, {
@@ -463,6 +624,7 @@ export function usePhasedInvestigation(
             : "The investigation could not continue.";
         setConnectionError(message);
         setConfirming(false);
+        startPolling();
         return;
       }
 
@@ -472,17 +634,18 @@ export function usePhasedInvestigation(
         return;
       }
 
-      await consumeEventStream(response.body, dispatch, new AbortController().signal);
+      await consumeEventStream(response.body, onStreamEvent, new AbortController().signal);
     } catch (error) {
       if (error instanceof Error && error.name === "TypeError") {
         setConnectionError("The connection to the server was lost.");
       } else {
         setConnectionError("The investigation stopped unexpectedly.");
       }
+      startPolling();
     } finally {
       setConfirming(false);
     }
   }
 
-  return { state, connectionError, confirming, resume };
+  return { state, connectionError, confirming, resume, stalled };
 }

@@ -9,7 +9,7 @@ import type { RiskLevel, VisualAttribute } from "@/types/investigation";
 
 export type StageId = InvestigationStage;
 
-export type StageState = "pending" | "active" | "done" | "failed";
+export type StageState = "pending" | "active" | "done" | "failed" | "skipped";
 
 export type TimelineStage = {
   id: StageId;

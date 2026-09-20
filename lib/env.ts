@@ -33,7 +33,10 @@ type PublicVar = "NEXT_PUBLIC_SUPABASE_URL" | "NEXT_PUBLIC_SUPABASE_ANON_KEY";
 
 function read(name: ServerVar | PublicVar): string | undefined {
   const value = process.env[name];
-  return value && value.trim().length > 0 ? value.trim() : undefined;
+  // Strip \r so CRLF-contaminated .env files cannot corrupt values.
+  if (!value) return undefined;
+  const cleaned = value.replace(/\r/g, "").trim();
+  return cleaned ? cleaned : undefined;
 }
 
 /** Returns the variable, or throws a ConfigError that is safe to surface. */
@@ -46,6 +49,53 @@ export function requireEnv(name: ServerVar | PublicVar): string {
 /** Returns the variable or `undefined` — for optional integrations. */
 export function optionalEnv(name: ServerVar | PublicVar): string | undefined {
   return read(name);
+}
+
+export type SupabaseUrlState =
+  | { kind: "unset" }
+  | { kind: "invalid"; message: string }
+  | { kind: "ok"; url: string };
+
+/**
+ * Normalized Supabase project URL.
+ *
+ * Trims whitespace, strips stray wrapping quotes and trailing slashes, and
+ * prepends https:// when the scheme is missing (a bare
+ * `abcdef.supabase.co` otherwise fails at the transport layer with a bare
+ * TypeError). Returns a descriptive state instead of throwing, so callers
+ * can distinguish "not configured" from "misconfigured".
+ */
+export function readSupabaseUrl(): SupabaseUrlState {
+  const raw = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  if (!raw || !raw.replace(/\r/g, "").trim()) return { kind: "unset" };
+
+  const cleaned = raw
+    .replace(/\r/g, "")
+    .trim()
+    .replace(/^["']|["']$/g, "")
+    .trim();
+  if (!cleaned) return { kind: "unset" };
+
+  const withScheme = /^[a-zA-Z][a-zA-Z0-9+.-]*:\/\//.test(cleaned)
+    ? cleaned
+    : `https://${cleaned}`;
+  const url = withScheme.replace(/\/+$/, "");
+
+  try {
+    const parsed = new URL(url);
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+      return {
+        kind: "invalid",
+        message: `NEXT_PUBLIC_SUPABASE_URL has an unsupported scheme: ${parsed.protocol}`,
+      };
+    }
+    return { kind: "ok", url };
+  } catch {
+    return {
+      kind: "invalid",
+      message: `NEXT_PUBLIC_SUPABASE_URL is not a valid URL: ${cleaned.slice(0, 60)}`,
+    };
+  }
 }
 
 /** True when every variable required for a full investigation is present. */

@@ -12,6 +12,7 @@ import {
   listSites,
   listVisits,
 } from "@/lib/supabase/store";
+import { persistenceStatus } from "@/lib/supabase/client";
 
 export const metadata = { title: "Alerts" };
 
@@ -24,7 +25,8 @@ export const metadata = { title: "Alerts" };
 export const dynamic = "force-dynamic";
 
 export default async function AlertsPage() {
-  const configured = isPersistenceEnabled();
+  const dbStatus = persistenceStatus();
+  const configured = dbStatus !== "off" && isPersistenceEnabled();
   const sites = configured ? await listSites(100) : [];
 
   const flagged: {
@@ -65,9 +67,11 @@ export default async function AlertsPage() {
 
       <Rule strong className="mt-8" />
 
-      {!configured ? (
+      {!configured || dbStatus === "broken" ? (
         <p className="mt-8 text-ink-muted">
-          Alerts need stored investigations. Configure Supabase to enable them.
+          {dbStatus === "broken"
+            ? "Alerts are unavailable — the database connection is failing. Check the server log banner."
+            : "Alerts need stored investigations. Configure Supabase to enable them."}
         </p>
       ) : flagged.length === 0 ? (
         <div className="mt-8 border-t border-rule pt-5">

@@ -9,6 +9,7 @@ import {
   listRecentInvestigations,
   listVisits,
 } from "@/lib/supabase/store";
+import { persistenceDetail, persistenceStatus } from "@/lib/supabase/client";
 
 export const metadata = { title: "Map" };
 
@@ -27,7 +28,10 @@ export default async function MapPage({
 }) {
   const { view } = await searchParams;
   const showIndex = view === "index";
-  const configured = isPersistenceEnabled();
+  const dbStatus = persistenceStatus();
+  const configured = dbStatus !== "off" && isPersistenceEnabled();
+  // "broken" still attempts the read once: success clears the flag, failure
+  // is fast and flips it back. Healthy renders never notice.
   const visits = configured ? await listVisits(undefined, 200) : [];
 
   const bySite = new Map<string, typeof visits>();
@@ -100,15 +104,27 @@ export default async function MapPage({
 
       <Rule strong className="mt-6" />
 
-      {!configured ? (
+      {!configured || dbStatus === "broken" ? (
         <div className="mt-8 border-t border-rule pt-5">
-          <h2 className="font-serif text-2xl">History is not configured</h2>
+          <h2 className="font-serif text-2xl">
+            {dbStatus === "broken" ? "History is unavailable" : "History is not configured"}
+          </h2>
           <p className="hydros-prose mt-2 text-ink-muted">
-            Investigations run normally, but they are not being stored. Set{" "}
-            <span className="font-mono text-[0.8125rem]">NEXT_PUBLIC_SUPABASE_URL</span> and{" "}
-            <span className="font-mono text-[0.8125rem]">SUPABASE_SERVICE_ROLE_KEY</span>, then apply
-            the migration in{" "}
-            <span className="font-mono text-[0.8125rem]">supabase/migrations</span> to enable it.
+            {dbStatus === "broken" ? (
+              <>
+                The database is configured but the connection is failing
+                {persistenceDetail() ? `: ${persistenceDetail()}` : ""}. Check
+                the server log banner. Investigations still run normally.
+              </>
+            ) : (
+              <>
+                Investigations run normally, but they are not being stored. Set{" "}
+                <span className="font-mono text-[0.8125rem]">NEXT_PUBLIC_SUPABASE_URL</span> and{" "}
+                <span className="font-mono text-[0.8125rem]">SUPABASE_SERVICE_ROLE_KEY</span>, then apply
+                the migration in{" "}
+                <span className="font-mono text-[0.8125rem]">supabase/migrations</span> to enable it.
+              </>
+            )}
           </p>
           <Link
             href="/investigate"

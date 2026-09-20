@@ -6,6 +6,7 @@ import {
   cityInvestigateHref,
 } from "@/lib/geo/cities";
 import { formatCoordinate } from "@/lib/utils/validation";
+import { persistenceStatus } from "@/lib/supabase/client";
 import { getInvestigation } from "@/lib/supabase/store";
 
 /**
@@ -16,10 +17,15 @@ import { getInvestigation } from "@/lib/supabase/store";
  * persistence off). Never a placeholder: every card opens a working flow.
  */
 export async function DemoStrip() {
+  // Never fire failing requests: without a healthy database there is nothing
+  // to look up, so every card is an honest prefilled entry point.
+  const usable = persistenceStatus() === "on";
   const cards = await Promise.all(
     DEMO_INVESTIGATIONS.map(async ({ slug, id }) => {
       const city = RESEARCH_CITIES.find((c) => c.slug === slug)!;
-      const investigation = await getInvestigation(id).catch(() => null);
+      const investigation = usable
+        ? await getInvestigation(id).catch(() => null)
+        : null;
       return { city, investigation };
     }),
   );
