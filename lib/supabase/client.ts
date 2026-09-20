@@ -9,18 +9,18 @@
  * strictly optional — every function here is safe to call when Supabase is not
  * configured, and returns a miss rather than throwing.
  */
-import { optionalEnv } from "@/lib/env";
+import { optionalEnv, readSupabaseUrl } from "@/lib/env";
 
 /**
  * Normalizes the configured URL to a bare project origin.
  *
- * The value in .env includes a `/rest/v1/` suffix; appending paths to that
+ * The value in .env may include a `/rest/v1/` suffix; appending paths to that
  * yields 404s from PostgREST, so the suffix is stripped once here.
  */
 function projectUrl(): string | null {
-  const raw = optionalEnv("NEXT_PUBLIC_SUPABASE_URL");
-  if (!raw) return null;
-  return raw.replace(/\/(rest|auth|storage)\/v\d+\/?$/, "").replace(/\/+$/, "");
+  const state = readSupabaseUrl();
+  if (state.kind !== "ok") return null;
+  return state.url.replace(/\/(rest|auth|storage)\/v\d+\/?$/, "").replace(/\/+$/, "");
 }
 
 function serviceKey(): string | null {
@@ -30,6 +30,31 @@ function serviceKey(): string | null {
 /** True when server-side writes are possible. */
 export function isPersistenceEnabled(): boolean {
   return projectUrl() !== null && serviceKey() !== null;
+}
+
+/**
+ * Last transport failure, cleared on the next success.
+ *
+ * Powers persistenceStatus(): the difference between "not configured" and
+ * "configured but the connection is broken" — which previously looked
+ * identical, letting a dead database hide behind the "not configured" UI.
+ */
+let lastTransportError: string | null = null;
+
+/** "off" (unconfigured), "on" (healthy or untested), "broken" (failing). */
+export function persistenceStatus(): "off" | "on" | "broken" {
+  const state = readSupabaseUrl();
+  if (state.kind === "unset") return "off";
+  if (state.kind === "invalid") return "broken";
+  if (!serviceKey()) return "off";
+  return lastTransportError ? "broken" : "on";
+}
+
+/** Human-readable detail for the "broken" state. Never contains secrets. */
+export function persistenceDetail(): string | null {
+  const state = readSupabaseUrl();
+  if (state.kind === "invalid") return state.message;
+  return lastTransportError;
 }
 
 type ServiceContext = { url: string; key: string };
@@ -86,16 +111,54 @@ async function request(
       return null;
     }
 
+    lastTransportError = null;
     return response;
   } catch (error) {
-    console.warn(
-      `[supabase] ${init.method ?? "GET"} ${path} failed:`,
-      error instanceof Error ? error.name : "unknown error",
-    );
+    // Transport failure: the request never completed, so there is no status.
+    // Log the cause chain (Undici nests ECONNREFUSED, ENOTFOUND, timeouts in
+    // `cause`) plus the resolved URL — but never keys or headers. Detail is
+    // dev-only; production keeps one generic line.
+    lastTransportError =
+      error instanceof Error ? describeError(error) : "unknown error";
+    if (process.env.NODE_ENV !== "production") {
+      console.warn(
+        `[supabase] ${init.method ?? "GET"} ${path} failed:`,
+        lastTransportError,
+      );
+    } else {
+      console.warn(
+        `[supabase] ${init.method ?? "GET"} ${path} failed:`,
+        error instanceof Error ? error.name : "unknown error",
+      );
+    }
     return null;
   } finally {
     clearTimeout(timer);
   }
+}
+
+/**
+ * One-line error description with the full `cause` chain.
+ *
+ * Example: `TypeError: fetch failed <- Error: getaddrinfo ENOTFOUND
+ * xyz.supabase.co`. The chain is where Undici hides the real reason, and it
+ * never contains credentials — only names, messages, and codes.
+ */
+function describeError(error: unknown): string {
+  const parts: string[] = [];
+  let current: unknown = error;
+  for (let depth = 0; depth < 5; depth += 1) {
+    if (!(current instanceof Error)) {
+      if (current !== null && current !== undefined) parts.push(String(current));
+      break;
+    }
+    const code = (current as { code?: unknown }).code;
+    parts.push(
+      `${current.name}: ${current.message}${typeof code === "string" ? ` [${code}]` : ""}`,
+    );
+    current = (current as { cause?: unknown }).cause;
+  }
+  return parts.join(" <- ");
 }
 
 /** Inserts rows into a table. Returns false when the write did not happen. */
