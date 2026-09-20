@@ -42,7 +42,7 @@ export function investigationJsonLd(
       investigation.assessment?.summary ??
       "Evidence-first water investigation. No assessment reached.",
     dateCreated: investigation.createdAt,
-    license: "https://github.com/galihkjaya/waterlens/blob/test/LICENSE",
+    license: "https://github.com/galihkjaya/hydros/blob/test/LICENSE",
     spatialCoverage: {
       "@type": "Place",
       geo: {
@@ -99,7 +99,7 @@ export function investigationsCatalogJsonLd(
     name: "Hydros public investigations",
     description:
       "Evidence-first urban freshwater investigations, built on the One Health model.",
-    license: "https://github.com/galihkjaya/waterlens/blob/test/LICENSE",
+    license: "https://github.com/galihkjaya/hydros/blob/test/LICENSE",
     "dcat:dataset": entries.map((entry) => ({
       "@type": "Dataset",
       "@id": `${baseUrl}/api/investigate/${entry.id}/jsonld`,
