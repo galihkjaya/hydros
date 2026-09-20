@@ -208,6 +208,10 @@ export async function runPhaseA(
 
   emit({ type: "started", data: { investigationId } });
 
+  // Wall-clock markers: phase A is vision + geography, so its duration moves
+  // with provider latency. These lines are the record when timings vary.
+  const phaseAStarted = Date.now();
+
   try {
     emit({ type: "vision_started" });
     emit({ type: "geo_search_started" });
@@ -253,6 +257,9 @@ export async function runPhaseA(
     emit({ type: "geo_search_completed", data: geographic });
 
     emit({ type: "awaiting_confirmation", data: { visual, geographic } });
+    console.info(
+      `[run] phase A done in ${((Date.now() - phaseAStarted) / 1000).toFixed(1)}s (investigation ${investigationId})`,
+    );
 
     return { visual, geographic };
   } catch (error) {
@@ -517,6 +524,7 @@ export async function runPhaseB(
   emit({ type: "started", data: { investigationId } });
 
   const startedAt = Date.now();
+  const phaseBStarted = startedAt;
   const runDeadline = startedAt + TOTAL_BUDGET_MS;
   /** A stage budget, never extending past the run deadline or the reasoning reserve. */
   const stageDeadline = (budgetMs: number): number =>
@@ -609,6 +617,9 @@ export async function runPhaseB(
     emit({ type: "assessment_completed", data: assessment });
 
     emit({ type: "completed" });
+    console.info(
+      `[run] phase B done in ${((Date.now() - phaseBStarted) / 1000).toFixed(1)}s (investigation ${investigationId})`,
+    );
 
     return { visual, geographic, evidence: withPathways, assessment };
   } catch (error) {

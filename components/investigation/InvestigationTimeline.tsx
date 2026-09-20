@@ -39,9 +39,11 @@ export function InvestigationTimeline({
                 stage.state === "active" && "font-medium text-foreground",
                 stage.state === "done" && "text-foreground",
                 stage.state === "failed" && "font-medium text-signal",
+                stage.state === "skipped" && "text-subtle",
               )}
             >
               {stage.state === "active" ? stage.activeLabel : stage.label}
+              {stage.state === "skipped" ? " — skipped" : null}
             </p>
             {stage.detail ? (
               <p className="mt-0.5 text-[0.8125rem] text-muted">{stage.detail}</p>
@@ -99,6 +101,17 @@ function StageMarker({ state }: { state: TimelineStage["state"] }) {
       >
         <span className="size-2.5 animate-pulse bg-ink" />
         <span className="absolute size-5 border border-ink-faint" />
+      </span>
+    );
+  }
+
+  if (state === "skipped") {
+    return (
+      <span
+        aria-hidden="true"
+        className="flex size-5 shrink-0 items-center justify-center"
+      >
+        <span className="size-2 border border-dashed border-ink-faint" />
       </span>
     );
   }

@@ -30,7 +30,7 @@ export function InvestigationWorkspace({
 }) {
   // undefined until the client has read sessionStorage; null when absent.
   const draft = useDraft(investigationId);
-  const { state, connectionError, confirming, resume } =
+  const { state, connectionError, confirming, resume, stalled } =
     usePhasedInvestigation(draft, investigationId);
 
   if (draft === null) {
@@ -122,6 +122,12 @@ export function InvestigationWorkspace({
                 error={error}
                 currentQuery={state.currentQuery}
               />
+              {stalled && !state.finished && !error ? (
+                <p className="mt-2 font-mono text-[0.8125rem] text-ink-muted" role="status">
+                  Still working — some stages take a minute. Progress resumes
+                  automatically.
+                </p>
+              ) : null}
             </div>
 
             <div className="border-t border-line pt-5">
