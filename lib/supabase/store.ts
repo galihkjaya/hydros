@@ -14,10 +14,12 @@ import {
   upsertRow,
 } from "./client";
 import { parseImageDataUrl } from "@/lib/utils/validation";
+import { siteGeohashFor } from "@/lib/geo/site";
 import type {
   AssessmentRow,
   EvidenceRow,
   InvestigationRow,
+  SiteRow,
   SourceRow,
 } from "@/types/database";
 import type {
@@ -386,4 +388,209 @@ export async function getInvestigation(
       : {}),
     ...(row.error ? { error: row.error } : {}),
   };
+}
+
+// ---------------------------------------------------------------------------
+// Sites, visits, map points
+// ---------------------------------------------------------------------------
+
+export type SiteSummary = {
+  geohash: string;
+  centroidLat: number;
+  centroidLng: number;
+  displayName: string | null;
+  waterwayName: string | null;
+  firstSeenAt: string;
+  lastSeenAt: string;
+  investigationCount: number;
+};
+
+function toSiteSummary(row: SiteRow): SiteSummary {
+  return {
+    geohash: row.geohash,
+    centroidLat: row.centroid_lat,
+    centroidLng: row.centroid_lng,
+    displayName: row.display_name,
+    waterwayName: row.waterway_name,
+    firstSeenAt: row.first_seen_at,
+    lastSeenAt: row.last_seen_at,
+    investigationCount: row.investigation_count,
+  };
+}
+
+export async function getSite(geohash: string): Promise<SiteSummary | null> {
+  if (!isPersistenceEnabled()) return null;
+  const rows = await selectRows<SiteRow>(
+    "sites",
+    new URLSearchParams({
+      select: "*",
+      geohash: `eq.${geohash}`,
+      limit: "1",
+    }).toString(),
+  );
+  return rows[0] ? toSiteSummary(rows[0]) : null;
+}
+
+export async function listSites(limit = 100): Promise<SiteSummary[]> {
+  if (!isPersistenceEnabled()) return [];
+  const rows = await selectRows<SiteRow>(
+    "sites",
+    new URLSearchParams({
+      select: "*",
+      order: "last_seen_at.desc",
+      limit: String(limit),
+    }).toString(),
+  );
+  return rows.map(toSiteSummary);
+}
+
+/**
+ * Records a completed investigation at its site.
+ *
+ * Computes the geohash cell, upserts the site row (running centroid and
+ * count), and links the investigation. Best-effort like every write here.
+ */
+export async function touchSite(
+  investigationId: string,
+  geographic: GeographicContext,
+): Promise<string | null> {
+  if (!isPersistenceEnabled()) return null;
+  const geohash = siteGeohashFor(
+    geographic.location.latitude,
+    geographic.location.longitude,
+  );
+
+  const existing = await getSite(geohash);
+  const count = (existing?.investigationCount ?? 0) + 1;
+  const centroidLat = existing
+    ? (existing.centroidLat * (count - 1) + geographic.location.latitude) / count
+    : geographic.location.latitude;
+  const centroidLng = existing
+    ? (existing.centroidLng * (count - 1) + geographic.location.longitude) / count
+    : geographic.location.longitude;
+
+  await upsertRow("sites", {
+    geohash,
+    centroid_lat: centroidLat,
+    centroid_lng: centroidLng,
+    display_name:
+      existing?.displayName ?? geographic.location.displayName ?? null,
+    waterway_name: existing?.waterwayName ?? geographic.waterways[0] ?? null,
+    last_seen_at: new Date().toISOString(),
+    investigation_count: count,
+  });
+  await patchRow("investigations", investigationId, {
+    site_geohash: geohash,
+  });
+  return geohash;
+}
+
+export type VisitRecord = {
+  siteGeohash: string | null;
+  id: string;
+  createdAt: string;
+  placeName: string | null;
+  latitude: number;
+  longitude: number;
+  imageUrl: string | null;
+  riskLevel: RiskAssessment["riskLevel"] | null;
+  confidence: number | null;
+  guidedMode: boolean;
+  guidedResponses: Record<string, string> | null;
+  sourceUrls: string[];
+  hasAuthoritativeSource: boolean;
+  maxPathwayStrength: number | null;
+  assessmentSummary: string | null;
+};
+
+/**
+ * Visit-level rows for trends and alerts, across one site or all sites.
+ *
+ * Three queries (investigations + assessments + sources), composed in memory —
+ * bounded by `limit`, newest first from the database, oldest first out.
+ */
+export async function listVisits(
+  siteGeohash?: string,
+  limit = 500,
+): Promise<VisitRecord[]> {
+  if (!isPersistenceEnabled()) return [];
+
+  const invParams = new URLSearchParams({
+    select:
+      "id,created_at,place_name,latitude,longitude,image_url,site_geohash,visual,guided_responses,health_pathways",
+    order: "created_at.desc",
+    limit: String(limit),
+  });
+  if (siteGeohash) invParams.set("site_geohash", `eq.${siteGeohash}`);
+  const invRows = await selectRows<
+    Pick<
+      InvestigationRow,
+      | "id"
+      | "created_at"
+      | "place_name"
+      | "latitude"
+      | "longitude"
+      | "image_url"
+      | "visual"
+      | "guided_responses"
+      | "health_pathways"
+    > & { site_geohash: string | null }
+  >("investigations", invParams.toString());
+  if (invRows.length === 0) return [];
+
+  const ids = invRows.map((row) => row.id);
+  const [assessmentRows, sourceRows] = await Promise.all([
+    selectRows<AssessmentRow>(
+      "assessments",
+      new URLSearchParams({
+        select: "investigation_id,risk_level,confidence,summary",
+        investigation_id: `in.(${ids.join(",")})`,
+      }).toString(),
+    ),
+    selectRows<Pick<SourceRow, "investigation_id" | "url" | "source_type">>(
+      "sources",
+      new URLSearchParams({
+        select: "investigation_id,url,source_type",
+        investigation_id: `in.(${ids.join(",")})`,
+      }).toString(),
+    ),
+  ]);
+
+  const assessments = new Map(assessmentRows.map((row) => [row.investigation_id, row]));
+  const sourcesByInv = new Map<string, { url: string; source_type: SourceRow["source_type"] }[]>();
+  for (const row of sourceRows) {
+    const list = sourcesByInv.get(row.investigation_id) ?? [];
+    list.push({ url: row.url, source_type: row.source_type });
+    sourcesByInv.set(row.investigation_id, list);
+  }
+
+  return invRows
+    .map((row) => {
+      const assessment = assessments.get(row.id);
+      const sources = sourcesByInv.get(row.id) ?? [];
+      const pathways = row.health_pathways ?? [];
+      return {
+        siteGeohash: row.site_geohash,
+        id: row.id,
+        createdAt: row.created_at,
+        placeName: row.place_name,
+        latitude: row.latitude,
+        longitude: row.longitude,
+        imageUrl: row.image_url,
+        riskLevel: assessment?.risk_level ?? null,
+        confidence: assessment?.confidence ?? null,
+        guidedMode: row.guided_responses !== null,
+        guidedResponses: (row.guided_responses ?? null) as Record<string, string> | null,
+        sourceUrls: sources.map((s) => s.url),
+        hasAuthoritativeSource: sources.some(
+          (s) => s.source_type === "government" || s.source_type === "scientific",
+        ),
+        maxPathwayStrength:
+          pathways.length > 0
+            ? Math.max(...pathways.map((p) => p.strength))
+            : null,
+        assessmentSummary: assessment?.summary ?? null,
+      };
+    })
+    .sort((a, b) => (a.createdAt < b.createdAt ? -1 : 1));
 }

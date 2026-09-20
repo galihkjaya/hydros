@@ -70,3 +70,13 @@ export function cityInvestigateHref(slug: string): string {
   if (!city) return "/investigate";
   return `/investigate?lat=${city.latitude}&lon=${city.longitude}`;
 }
+
+/**
+ * Deterministic demo investigation IDs, written by scripts/seed-demo.mjs.
+ * The landing strip links these: real, completed, seeded investigations.
+ */
+export const DEMO_INVESTIGATIONS: { slug: string; id: string }[] = [
+  { slug: "coimbra", id: "11111111-1111-4111-8111-111111111111" },
+  { slug: "ghent", id: "22222222-2222-4222-8222-222222222222" },
+  { slug: "oslo", id: "33333333-3333-4333-8333-333333333333" },
+];

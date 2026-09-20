@@ -68,3 +68,14 @@ export type AssessmentRow = {
 
 /** Insert payloads omit server-generated columns. */
 export type InvestigationInsert = Omit<InvestigationRow, "created_at"> ;
+
+export type SiteRow = {
+  geohash: string;
+  centroid_lat: number;
+  centroid_lng: number;
+  display_name: string | null;
+  waterway_name: string | null;
+  first_seen_at: string;
+  last_seen_at: string;
+  investigation_count: number;
+};
