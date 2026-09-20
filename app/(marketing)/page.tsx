@@ -4,11 +4,10 @@ import {
   Chip,
   DisplayHeading,
   Eyebrow,
-  Figure,
   Rule,
 } from "@/components/ui/primitives";
 import { Logo } from "@/components/layout/Logo";
-import { RESEARCH_CITIES, cityInvestigateHref } from "@/lib/geo/cities";
+import { DemoStrip } from "@/components/marketing/DemoStrip";
 
 /**
  * Landing page. Server component — entirely static.
@@ -69,14 +68,11 @@ const LAYERS = [
   },
 ] as const;
 
+export const dynamic = "force-dynamic";
+
 // Demo strip cities: Coimbra leads — the coordinator is at its university.
-const DEMO_SLUGS = ["coimbra", "ghent", "oslo"] as const;
 
 export default function Home() {
-  const demoCities = DEMO_SLUGS.map(
-    (slug) => RESEARCH_CITIES.find((c) => c.slug === slug)!,
-  );
-
   return (
     <main>
       {/* Masthead hero */}
@@ -175,44 +171,11 @@ export default function Home() {
           Start where the <em>research cities</em> are
         </DisplayHeading>
         <p className="hydros-prose mt-3 text-ink-muted">
-          One click opens an investigation prefilled with the city&apos;s
-          waterway coordinates. Completed, seeded investigations appear here
-          once the demo data lands.
+          One click opens a completed, seeded investigation. Before the demo
+          data lands, each card starts a prefilled investigation instead.
         </p>
 
-        <ul className="mt-8 grid gap-8 sm:grid-cols-3">
-          {demoCities.map((city) => (
-            <li key={city.slug}>
-              <Link
-                href={cityInvestigateHref(city.slug)}
-                className="group block border-t-2 border-ink pt-4 transition-colors hover:bg-paper-sunk"
-              >
-                <Figure
-                  caption={`${city.waterway} — ${city.country}`}
-                >
-                  <div className="flex aspect-[4/3] flex-col justify-between bg-paper-sunk p-5">
-                    <p className="font-mono text-[0.6875rem] tracking-widest text-ink-muted uppercase">
-                      {city.name}
-                    </p>
-                    <p className="font-serif text-3xl leading-none">
-                      {city.waterway}
-                    </p>
-                    <p className="font-mono text-[0.8125rem] text-ink-muted">
-                      {city.latitude.toFixed(4)},{" "}
-                      {city.longitude.toFixed(4)}
-                    </p>
-                  </div>
-                </Figure>
-                <p className="mt-3 text-[0.875rem] text-ink-muted">
-                  {city.note}
-                </p>
-                <p className="mt-2 font-mono text-[0.8125rem] tracking-wider uppercase underline underline-offset-4 group-hover:text-ink">
-                  Investigate this waterway →
-                </p>
-              </Link>
-            </li>
-          ))}
-        </ul>
+        <DemoStrip />
       </section>
 
       <div className="mx-auto max-w-[1180px] px-6 sm:px-10">

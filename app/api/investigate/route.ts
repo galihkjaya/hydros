@@ -14,8 +14,6 @@ import { isInvestigationError } from "@/lib/investigation/errors";
 import {
   coerceInvestigationId,
   jsonError,
-  maxDuration,
-  runtime,
   streamEvents,
 } from "@/lib/investigation/stream";
 import {
@@ -26,7 +24,10 @@ import {
 } from "@/lib/supabase/store";
 import type { InvestigationEvent } from "@/types/events";
 
-export { runtime, maxDuration };
+export const runtime = "nodejs";
+
+/** Measured worst case fits Vercel's 300s function ceiling. */
+export const maxDuration = 300;
 
 /** Request body cap. The image dominates; 12 MB leaves headroom over the 8 MB limit. */
 const MAX_BODY_BYTES = 12 * 1024 * 1024;
