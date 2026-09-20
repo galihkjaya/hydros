@@ -144,7 +144,7 @@ async function request(
  * xyz.supabase.co`. The chain is where Undici hides the real reason, and it
  * never contains credentials — only names, messages, and codes.
  */
-function describeError(error: unknown): string {
+export function describeError(error: unknown): string {
   const parts: string[] = [];
   let current: unknown = error;
   for (let depth = 0; depth < 5; depth += 1) {

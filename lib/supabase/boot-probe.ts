@@ -6,7 +6,7 @@
  * of letting every investigation degrade silently. Never crashes: persistence
  * stays optional by design. Never logs keys or tokens.
  */
-import { persistenceStatus, persistenceDetail } from "./client";
+import { describeError, persistenceDetail, persistenceStatus } from "./client";
 import { optionalEnv } from "@/lib/env";
 
 let probed = false;
@@ -50,11 +50,7 @@ export async function probeSupabaseAtBoot(): Promise<void> {
     }
     console.info("[hydros] Supabase persistence is reachable.");
   } catch (error) {
-    printBanner(
-      error instanceof Error
-        ? `${error.name}: ${error.message}`
-        : "connection failed",
-    );
+    printBanner(describeError(error));
   } finally {
     clearTimeout(timer);
   }
