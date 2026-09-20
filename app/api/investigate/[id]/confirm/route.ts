@@ -12,8 +12,6 @@ import {
 import { isInvestigationError } from "@/lib/investigation/errors";
 import {
   jsonError,
-  maxDuration,
-  runtime,
   streamEvents,
 } from "@/lib/investigation/stream";
 import {
@@ -24,10 +22,14 @@ import {
   persistFailure,
   persistHealthPathways,
   persistSources,
+  touchSite,
 } from "@/lib/supabase/store";
 import type { InvestigationEvent } from "@/types/events";
 
-export { runtime, maxDuration };
+export const runtime = "nodejs";
+
+/** Measured worst case fits Vercel's 300s function ceiling. */
+export const maxDuration = 300;
 
 export async function POST(
   request: Request,
@@ -90,6 +92,7 @@ export async function POST(
           break;
         case "assessment_completed":
           persist(() => persistAssessment(investigationId, event.data));
+          persist(() => touchSite(investigationId, phaseB.geographic));
           break;
         case "failed":
           persist(() => persistFailure(investigationId, event.data.message));

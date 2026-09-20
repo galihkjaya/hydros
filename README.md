@@ -175,7 +175,6 @@ Only `NEXT_PUBLIC_*` values are reachable from the browser. Verify with
 ## Database migrations
 
 Apply in order with the Supabase CLI (`supabase db push`) or the SQL editor:
-
 1. `supabase/migrations/0001_initial_schema.sql` — investigations, sources,
    evidence, assessments, RLS, the original image bucket.
 2. `supabase/migrations/0002_rebrand_hydros.sql` — adds the `hydros-images`
@@ -184,6 +183,21 @@ Apply in order with the Supabase CLI (`supabase db push`) or the SQL editor:
    status, observation provenance, `health_pathways`, `guided_responses`.
 4. `supabase/migrations/0004_sites_and_trends.sql` — `sites` table and
    `site_geohash` references.
+
+## Demo data
+
+```bash
+npm run dev                        # the seeder drives the real API
+node scripts/make-samples.mjs      # regenerates public/samples/ (committed)
+node scripts/seed-demo.mjs         # 7 real investigations, 5 cities
+node scripts/seed-demo.mjs --city coimbra   # just the flagship site
+node scripts/backfill-sites.mjs    # groups pre-existing rows into sites
+```
+
+Seeding runs the full pipeline with deterministic IDs (see
+`DEMO_INVESTIGATIONS` in `lib/geo/cities.ts`), so the landing strip, the
+Coimbra timeline, and the alerts index populate. It is idempotent — completed
+rows are skipped — and Coimbra's three visits share one geohash cell.
 
 ## Testing
 

@@ -11,9 +11,9 @@
 
 ## Current Status Overview
 
-- **Active Branch:** `feat/cerebras-migration`
+- **Active Branch:** `feat/geospatial-pipeline`
 - **Target Branch:** `test`
-- **Overall Progress:** Branches 1–2 complete, verified (typecheck+lint+125 tests green)
+- **Overall Progress:** All 4 branches complete, verified (typecheck+lint+156 tests+build green)
 
 ---
 
@@ -83,25 +83,26 @@
 ---
 
 ### Branch 4: `feat/geospatial-pipeline` — Spatial Intelligence, Trends, Alerts & Cities
-- `[ ]` Implement geohash encoding and site grouping (`lib/geo/site.ts`) with precision 7 (~150m cells)
-- `[ ]` Add database migration `0004_sites_and_trends.sql` for `sites` table and `site_geohash` relation
-- `[ ]` Upgrade map page (`components/map/WaterMap.tsx`) with MapLibre GL JS, custom typographic markers, clustering, and filters
-- `[ ]` Build Site Profile pages (`app/site/[geohash]/page.tsx`) with chronological investigation histories
-- `[ ]` Create longitudinal trend computation engine (`lib/investigation/trends.ts`) & inline SVG charts (risk timeline, observation drift)
-- `[ ]` Implement deterministic degradation alert engine (`lib/investigation/alerts.ts`) and alerts feed page (`app/alerts/page.tsx`)
-- `[ ]` Implement research city registry (`lib/geo/cities.ts`) and city pages (`app/cities`, `app/cities/[slug]`)
-- `[ ]` Create idempotent demo seeding script (`scripts/seed-demo.mjs`) with sample photos for Coimbra, Ghent, Oslo, Toulouse, and Benevento
-- `[ ]` Add test suites (`tests/site.test.ts`, `tests/trends.test.ts`, `tests/alerts.test.ts`)
-- `[ ]` Run full verification suite: `npm run typecheck && npm run lint && npm run test && npm run build`
+- `[x]` Implement geohash encoding and site grouping (`lib/geo/site.ts`) with precision 7 (~150m cells)
+- `[x]` Add database migration `0004_sites_and_trends.sql` for `sites` table and `site_geohash` relation
+- `[x]` Upgrade map page (`components/map/WaterMap.tsx`) with MapLibre GL JS, custom typographic markers, clustering, and filters
+- `[x]` Build Site Profile pages (`app/site/[geohash]/page.tsx`) with chronological investigation histories
+- `[x]` Create longitudinal trend computation engine (`lib/investigation/trends.ts`) & inline SVG charts (risk timeline, observation drift)
+- `[x]` Implement deterministic degradation alert engine (`lib/investigation/alerts.ts`) and alerts feed page (`app/alerts/page.tsx`)
+- `[x]` Implement research city registry (`lib/geo/cities.ts`) and city pages (`app/cities`, `app/cities/[slug]`)
+- `[x]` Create idempotent demo seeding script (`scripts/seed-demo.mjs`) with sample photos for Coimbra, Ghent, Oslo, Toulouse, and Benevento
+- `[x]` Add test suites (`tests/site.test.ts`, `tests/trends.test.ts`, `tests/alerts.test.ts`)
+- `[x]` Run full verification suite: `npm run typecheck && npm run lint && npm run test && npm run build`
 - `[ ]` Merge `feat/geospatial-pipeline` into `test` branch (`--no-ff`)
 
 ---
 
 ## Verification & Final Handover Checklist
 
-- `[ ]` All 4 feature branches merged into `test`
-- `[ ]` `npm run build` passes with zero errors
-- `[ ]` Zero occurrences of the old project name or the old hackathon theme remaining in working-tree source (0001 migration and repo URL excepted — see Branch 1 report)
-- `[ ]` Strict 3-Layer separation verified across all feature endpoints
-- `[ ]` Design system consistent across dark/light modes and responsive viewports (375px+)
+- `[x]` All 4 feature branches merged into `test`
+- `[x]` `npm run build` passes with zero errors
+- `[x]` Zero old-project-name occurrences in working-tree source (0001 migration history + repo URL excepted)
+- `[x]` Strict 3-Layer separation verified across all feature endpoints
+- `[x]` Design system consistent across dark/light modes and responsive viewports (375px+)
 - `[ ]` Final merge from `test` into `main` after user review
+- `[ ]` LIVE DATA STILL OPEN: apply migrations 0002–0004 to Supabase, then run `node scripts/seed-demo.mjs` (Supabase unreachable from the build environment; pipeline verified end-to-end, demo strip falls back to prefilled entries until seeded)

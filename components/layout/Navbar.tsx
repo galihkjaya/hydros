@@ -9,6 +9,8 @@ import { cn } from "@/components/ui/primitives";
 const LINKS = [
   { href: "/investigate", label: "Investigate" },
   { href: "/map", label: "Map" },
+  { href: "/cities", label: "Cities" },
+  { href: "/alerts", label: "Alerts" },
 ] as const;
 
 /**
