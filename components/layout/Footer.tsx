@@ -39,7 +39,7 @@ export function Footer() {
           </p>
           <p className="mt-2 font-mono">
             <a
-              href="https://github.com/galihkjaya/waterlens"
+              href="https://github.com/galihkjaya/hydros"
               className="underline underline-offset-4 hover:text-ink"
               target="_blank"
               rel="noreferrer noopener"

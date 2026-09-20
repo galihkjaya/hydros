@@ -31,3 +31,7 @@ yarn-error.log*
 
 # supabase cli
 supabase/.temp/
+
+# agent working docs (local planning notes, not part of the product)
+PLAN.md
+PRD.md

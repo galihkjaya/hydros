@@ -15,6 +15,10 @@
   <code>Track 7 · Digital Health Standards</code>
 </p>
 
+<p align="center">
+  <a href="https://github.com/galihkjaya/hydros">Repository</a>
+</p>
+
 ## What Hydros is
 
 Hydros turns a photograph of an urban waterway (or a guided visual checklist)
@@ -84,7 +88,7 @@ exists.
 | 3 · AI-Supported Assessment | Human-in-the-loop observation confirmation with visible provenance | `components/investigation/ObservationConfirmation.tsx`, `app/api/investigate/[id]/confirm/route.ts` |
 | 3 · AI-Supported Assessment | Guided stream-assessment entry producing structured observations | `app/investigate/guided/page.tsx`, `lib/investigation/guided.ts` |
 | 3 · AI-Supported Assessment | One Health exposure pathways in conditional, cited language | `lib/ai/one-health.ts`, `components/investigation/HealthPathways.tsx` |
-| 6 · Resilience Informatics | Real greyscale investigation map with clustering and risk filters | `components/map/WaterMap.tsx`, `app/map/page.tsx` |
+| 6 · Resilience Informatics | Real greyscale investigation map with clustering and risk filters | `components/map/InvestigationMap.tsx`, `app/map/page.tsx` |
 | 6 · Resilience Informatics | Deterministic, auditable degradation alerts (threshold rules, not prediction) | `lib/investigation/alerts.ts`, `app/alerts/page.tsx` |
 | 6 · Resilience Informatics | Five OneAquaHealth research-city hubs with seeded demos | `lib/geo/cities.ts`, `app/cities`, `scripts/seed-demo.mjs` |
 | 7 · Digital Health Standards | FHIR R4 bundle export incl. Provenance | `lib/fhir/*`, `app/api/investigate/[id]/fhir/route.ts` |
@@ -167,6 +171,9 @@ SEARCH_API_KEY=
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
+
+# Public site URL (absolute links in FAIR exports; defaults to request origin)
+NEXT_PUBLIC_SITE_URL=
 ```
 
 Only `NEXT_PUBLIC_*` values are reachable from the browser. Verify with
@@ -204,11 +211,15 @@ rows are skipped — and Coimbra's three visits share one geohash cell.
 ```bash
 npm run typecheck && npm run lint && npm run test
 npm run build
+node scripts/e2e-check.mjs          # one full photo investigation via the live API
 ```
 
 Tests cover the three-layer guarantees, One Health basis validation, prompt
 injection fixtures, FHIR bundle structure, evidence integrity, FAIR output,
-geohashing (incl. antimeridian/polar edges), trends, and alerts.
+geohashing (incl. antimeridian/polar edges), trends, and alerts. The e2e
+script drives Phase A → confirm → Phase B against a running dev server and
+asserts the full event trail; provider quota errors (e.g. NVIDIA free-tier
+worker exhaustion) surface as stage failures, not hangs.
 
 ## What Hydros deliberately does not do
 
