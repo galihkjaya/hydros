@@ -35,3 +35,7 @@ supabase/.temp/
 # agent working docs (local planning notes, not part of the product)
 PLAN.md
 PRD.md
+
+# AI agent instruction files (local only, never pushed)
+AGENTS.md
+CLAUDE.md

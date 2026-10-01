@@ -1,14 +1,14 @@
 /**
  * Research planning stage.
  *
- * Cerebras turns the visual observations, the user's note and the geographic
+ * Juan turns the visual observations, the user's note and the geographic
  * context into concrete search queries. It cannot browse; it only decides what
  * should be looked up, and why.
  *
  * Query quality matters more than quantity here: each query costs a search API
  * call, and the free tier is finite.
  */
-import { askCerebras } from "./cerebras";
+import { askJuan } from "./juan";
 import {
   coerceObjectArray,
   coerceString,
@@ -211,7 +211,7 @@ export async function planResearch(input: {
   investigationId?: string;
 }): Promise<ResearchPlan> {
   try {
-    const responseText = await askCerebras({
+    const responseText = await askJuan({
       systemPrompt: SYSTEM_PROMPT,
       userPrompt: buildResearchPrompt(input),
       stage: "research",

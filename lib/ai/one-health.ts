@@ -1,7 +1,7 @@
 /**
  * One Health bridge layer (Layer 2.5).
  *
- * Runs on Cerebras between evidence synthesis and final assessment. Maps
+ * Runs on Juan between evidence synthesis and final assessment. Maps
  * visual observations and evidence claims onto potential exposure pathways
  * across the human, animal, and ecosystem domains.
  *
@@ -10,7 +10,7 @@
  * and names what would need measuring to confirm it. The final assessment
  * owns all weighing; this stage only surfaces the pathways.
  */
-import { askCerebras } from "./cerebras";
+import { askJuan } from "./juan";
 import {
   coerceConfidence,
   coerceEnum,
@@ -222,7 +222,7 @@ export async function runOneHealth({
   investigationId?: string;
 }): Promise<HealthPathway[]> {
   try {
-    const responseText = await askCerebras({
+    const responseText = await askJuan({
       systemPrompt: SYSTEM_PROMPT,
       userPrompt: buildOneHealthPrompt(pkg),
       stage: "health",

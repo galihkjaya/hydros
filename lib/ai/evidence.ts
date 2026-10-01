@@ -1,7 +1,7 @@
 /**
  * Evidence extraction and packaging.
  *
- * Cerebras reads the search results and turns them into discrete claims, each
+ * Juan reads the search results and turns them into discrete claims, each
  * tied to the URL it came from. This is the boundary where external web content
  * enters the system: it arrives as data, is fenced as data, and every claim must
  * carry its source or it is dropped.
@@ -10,7 +10,7 @@
  * only, never raw page text — so the final reasoning call stays inside token
  * limits and free-tier budgets.
  */
-import { askCerebras } from "./cerebras";
+import { askJuan } from "./juan";
 import {
   findOrphanedEvidence,
   weightEvidenceBySourceType,
@@ -263,7 +263,7 @@ export async function extractEvidence({
 
   if (ranked.length > 0) {
     try {
-      const responseText = await askCerebras({
+      const responseText = await askJuan({
         systemPrompt: SYSTEM_PROMPT,
         userPrompt: buildEvidencePrompt({
           visual,

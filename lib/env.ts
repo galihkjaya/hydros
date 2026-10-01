@@ -22,6 +22,8 @@ export class ConfigError extends Error {
 type ServerVar =
   | "NVIDIA_API_KEY"
   | "NVIDIA_VISION_MODEL"
+  | "JUAN_API_KEY"
+  | "JUAN_MODEL"
   | "CEREBRAS_API_KEY"
   | "CEREBRAS_MODEL"
   | "GROQ_API_KEY"
@@ -32,7 +34,36 @@ type ServerVar =
 type PublicVar = "NEXT_PUBLIC_SUPABASE_URL" | "NEXT_PUBLIC_SUPABASE_ANON_KEY";
 
 function read(name: ServerVar | PublicVar): string | undefined {
-  const value = process.env[name];
+  let value = process.env[name];
+  if (!value && name === "JUAN_API_KEY") {
+    value =
+      process.env.juan_api_key ??
+      process.env.JUAN_KEY ??
+      process.env.juan_key ??
+      process.env.CEREBRAS_API_KEY;
+  }
+  if (!value && name === "JUAN_MODEL") {
+    value =
+      process.env.JUAN_MODELS ??
+      process.env.juan_model ??
+      process.env.juan_models ??
+      process.env.models ??
+      process.env.MODELS ??
+      process.env.CEREBRAS_MODEL;
+  }
+  if (!value && name === "CEREBRAS_API_KEY") {
+    value =
+      process.env.JUAN_API_KEY ??
+      process.env.juan_api_key ??
+      process.env.JUAN_KEY;
+  }
+  if (!value && name === "CEREBRAS_MODEL") {
+    value =
+      process.env.JUAN_MODEL ??
+      process.env.JUAN_MODELS ??
+      process.env.juan_model ??
+      process.env.juan_models;
+  }
   // Strip \r so CRLF-contaminated .env files cannot corrupt values.
   if (!value) return undefined;
   const cleaned = value.replace(/\r/g, "").trim();
@@ -102,8 +133,8 @@ export function readSupabaseUrl(): SupabaseUrlState {
 export function hasInvestigationCredentials(): boolean {
   return (
     !!read("NVIDIA_API_KEY") &&
-    !!read("CEREBRAS_API_KEY") &&
-    !!read("CEREBRAS_MODEL") &&
+    (!!read("JUAN_API_KEY") || !!read("CEREBRAS_API_KEY")) &&
+    (!!read("JUAN_MODEL") || !!read("CEREBRAS_MODEL")) &&
     !!read("GROQ_API_KEY") &&
     !!read("SEARCH_API_KEY")
   );

@@ -10,8 +10,8 @@ import { readFileSync, existsSync } from "node:fs";
 const REQUIRED_FOR_INVESTIGATION = [
   "NVIDIA_API_KEY",
   "NVIDIA_VISION_MODEL",
-  "CEREBRAS_API_KEY",
-  "CEREBRAS_MODEL",
+  "JUAN_API_KEY",
+  "JUAN_MODEL",
   "GROQ_API_KEY",
   "GROQ_MODEL",
   "SEARCH_API_KEY",
@@ -38,7 +38,34 @@ function loadEnvFile(path) {
 }
 
 const fromFile = loadEnvFile(".env");
-const resolve = (name) => process.env[name] || fromFile[name] || "";
+const resolve = (name) => {
+  let val = process.env[name] || fromFile[name] || "";
+  if (!val && name === "JUAN_API_KEY") {
+    val =
+      process.env.juan_api_key ||
+      fromFile.juan_api_key ||
+      process.env.JUAN_KEY ||
+      fromFile.JUAN_KEY ||
+      process.env.CEREBRAS_API_KEY ||
+      fromFile.CEREBRAS_API_KEY ||
+      "";
+  }
+  if (!val && name === "JUAN_MODEL") {
+    val =
+      process.env.JUAN_MODELS ||
+      fromFile.JUAN_MODELS ||
+      process.env.juan_model ||
+      fromFile.juan_model ||
+      process.env.juan_models ||
+      fromFile.juan_models ||
+      process.env.models ||
+      fromFile.models ||
+      process.env.CEREBRAS_MODEL ||
+      fromFile.CEREBRAS_MODEL ||
+      "";
+  }
+  return val;
+};
 
 let missingRequired = 0;
 

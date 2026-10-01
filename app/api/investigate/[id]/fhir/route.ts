@@ -23,9 +23,9 @@ export async function GET(
 
   const bundle = buildFhirBundle(investigation, {
     vision: optionalEnv("NVIDIA_VISION_MODEL") ?? "nvidia-vision (unconfigured)",
-    research: optionalEnv("CEREBRAS_MODEL") ?? "cerebras (unconfigured)",
-    evidence: optionalEnv("CEREBRAS_MODEL") ?? "cerebras (unconfigured)",
-    oneHealth: optionalEnv("CEREBRAS_MODEL") ?? "cerebras (unconfigured)",
+    research: optionalEnv("JUAN_MODEL") ?? optionalEnv("CEREBRAS_MODEL") ?? "juan (unconfigured)",
+    evidence: optionalEnv("JUAN_MODEL") ?? optionalEnv("CEREBRAS_MODEL") ?? "juan (unconfigured)",
+    oneHealth: optionalEnv("JUAN_MODEL") ?? optionalEnv("CEREBRAS_MODEL") ?? "juan (unconfigured)",
     reasoning: optionalEnv("GROQ_MODEL") ?? "groq (unconfigured)",
   });
 
